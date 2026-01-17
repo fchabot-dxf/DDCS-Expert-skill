@@ -682,6 +682,7 @@ See `references/fusion-post-processor.md` for:
 
 For detailed information on specific topics:
 - **User Storage Map**: See `references/user-storage-map.md` - **Complete allocation guide for 174 persistent variables**
+- **K-Button Assignments**: See `references/k-button-assignments.md` - **Track K1-K7 button macros (all currently free)**
 - **Gantry Squaring Calibration**: See `references/gantry-squaring-calibration.md` - **Simple single-switch calibration with test cuts**
 - **PNP to NPN Converter**: See `references/pnp-to-npn-converter.md` - **Signal inverter for PNP probe compatibility**
 - **MacroB Programming Rules**: See `references/macrob-programming-rules.md` - **Essential M350 syntax rules and best practices**
