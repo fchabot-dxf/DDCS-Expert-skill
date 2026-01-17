@@ -16,8 +16,8 @@
 #102 = #881  (Current Y machine position)
 
 (Calculate WCS offset addresses)
-(G54=#810-814 starts at 810, then +5 for each WCS)
-(Actually: G54=#805-809, G55=#810-814, G56=#815-819)
+(G54 starts at #805, stride of 5 between WCS systems)
+(G54=#805-809, G55=#810-814, G56=#815-819, etc.)
 #103 = 805 + [#100 - 1] * 5  (X offset address)
 #104 = 806 + [#100 - 1] * 5  (Y offset address)
 
