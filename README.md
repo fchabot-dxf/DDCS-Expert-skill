@@ -1,546 +1,368 @@
-# DDCS M350 Expert Controller - Core Truth (V1.22 VERIFIED)
+# DDCS Expert Skill
 
-**CRITICAL: Read this FIRST before writing any macro code**
+**Comprehensive documentation and macro library for DDCS Expert (M350) CNC controller**
 
-**Last Updated**: January 2026  
-**Version**: V1.22 Verified  
-**Source**: Production-tested Ultimate Bee 1010 + Community verification
-
----
-
-## ⚠️ CRITICAL "CORE TRUTHS" - Standard FANUC Rules DO NOT Apply
-
-### 1. G10 is BROKEN - Use Direct Parameter Writing
-
-**Problem**: `G10 L2 P1 X0 Y0 Z0` causes unwanted motion or unpredictable behavior
-
-**WHY**: G10 WCS offset writing is not implemented correctly in M350 firmware
-
-**✅ SOLUTION - Direct Parameter Writing:**
-```gcode
-; WRONG - Do not use G10
-G10 L2 P1 X0 Y0 Z0  ; BROKEN!
-
-; CORRECT - Write directly to WCS offset variables
-#805 = #880  ; Set G54 X offset to current machine X
-#806 = #881  ; Set G54 Y offset to current machine Y
-#807 = #882  ; Set G54 Z offset to current machine Z
-```
-
-**For any WCS (G54-G59):**
-```gcode
-; Universal pattern for active WCS
-#100 = #578               ; Get active WCS index (1-6)
-#101 = 805 + [#100-1]*5   ; Calculate X offset address
-#102 = 806 + [#100-1]*5   ; Calculate Y offset address
-#103 = 807 + [#100-1]*5   ; Calculate Z offset address
-
-#[#101] = #880            ; Set X offset
-#[#102] = #881            ; Set Y offset
-#[#103] = #882            ; Set Z offset
-```
+![Version](https://img.shields.io/badge/version-1.0-blue)
+![Controller](https://img.shields.io/badge/DDCS-Expert%20M350-orange)
+![Firmware](https://img.shields.io/badge/firmware-V1.22-green)
 
 ---
 
-### 2. G53 Syntax Rules (VERIFIED V1.22)
+## Overview
 
-**CRITICAL**: G53 machine coordinate system moves have STRICT requirements.
+This skill provides complete documentation, proven macros, and reference materials for operating CNC machines with the DDCS Expert (M350) controller. Built from production experience on an Ultimate Bee 1010 dual-gantry CNC machine.
 
-#### ✅ VALID Syntax (VERIFIED WORKING)
-
-**Method 1: G53 with Variables Only**
-```gcode
-#100 = 500    ; Target machine X (positive space)
-#101 = -500   ; Target machine Y (NEGATIVE space)
-G53 X[#100] Y[#101]  ; MUST use variables, NO G0/G1 on same line
-```
-
-**Method 2: G53 with Variable References**
-```gcode
-G53 X#100 Y#101  ; Direct variable reference also works
-```
-
-**Key Rules:**
-- ✅ MUST use variables (cannot use hardcoded constants)
-- ✅ NO G0 or G1 on the same line as G53
-- ✅ Variables only - expressions like `X[#100]` or `X#100`
-
-#### ❌ INVALID Syntax (WILL FAIL)
-
-```gcode
-; WRONG - Combining G53 with G0/G1
-G53 G0 X500 Y-500       ; WILL FAIL - no G0/G1 allowed
-G0 G53 X#100 Y#101      ; WILL FAIL - order doesn't matter
-
-; WRONG - Using hardcoded constants
-G53 X500 Y-500          ; UNRELIABLE - may use WCS instead of machine coords
-G53 X0 Y0               ; UNRELIABLE - avoid constants
-
-; WRONG - Modal combination attempts
-G53 G0                  ; Then later: X500 Y-500  ; WILL FAIL
-```
-
-#### 🛡️ FAILSAFE Method (ALWAYS WORKS)
-
-**Incremental Delta Moves** - Use when unsure:
-```gcode
-; Calculate delta from current position to target
-#100 = 500 - #880    ; Delta X (target - current machine X)
-#101 = -500 - #881   ; Delta Y (target - current machine Y)
-
-G91                  ; Switch to incremental mode
-G0 X[#100] Y[#101]   ; Move by calculated delta
-G90                  ; Return to absolute mode
-```
-
-**When to use each method:**
-- **G53 with variables**: Clean, direct - use for production code
-- **Incremental delta**: Guaranteed failsafe - use when debugging or unsure
+**Skill file updated periodically - download the latest `.skill` file from this repository**
 
 ---
 
-### 3. G28 Reference Point Behavior
+## What's Included
 
-**Understanding G28 on M350**: G28 moves to the back-off position from limit switches, NOT machine zero.
+### 📚 Documentation (18 Files)
 
-**How G28 works on DDCS M350:**
-- G28 moves axes to their **home switch back-off positions**
-- Back-off distances set in Parameters Pr122-124 (variables #622-#624)
-- This is NOT the same as machine coordinate zero
-- This is the safe position after homing completes
+**Core Reference:**
+- **CORE_TRUTH.md** - V1.22 verified controller quirks and workarounds
+- **hardware-config.md** - Complete machine configuration reference
+- **macrob-programming-rules.md** - Essential M350 macro syntax rules
+- **user-storage-map.md** - 174 persistent variable allocation guide
+- **variable-priming-card.md** - Critical variable washing bug workaround
 
-**Your Ultimate Bee 1010 G28 positions:**
-```gcode
-G28 X0 Y0 Z0  ; Moves to back-off positions:
-              ; X = 5.0mm (from limit switch)
-              ; Y = -5.0mm (from limit switch)
-              ; Z = -5.0mm (from limit switch)
-```
+**Specialized Guides:**
+- **pnp-to-npn-converter.md** - Signal inverter for PNP probe compatibility
+- **gantry-squaring-calibration.md** - Single-switch calibration method
+- **k-button-assignments.md** - K1-K7 programmable button map
+- **fusion-post-processor.md** - Complete Fusion 360 workflow
 
-**Where these values come from:**
-```gcode
-#622  ; Pr122 = X Back Home = 5.0mm
-#623  ; Pr123 = Y Back Home = -5.0mm  
-#624  ; Pr124 = Z Back Home = -5.0mm
-```
+**Variable & Control Reference:**
+- **community-discovered-variables.md** - Community-found variable behaviors
+- **system-control-variables.md** - System variable reference
+- **g31-probe-variables.md** - G31 probe command documentation
+- **ddcs-display-methods.md** - Dialog boxes and display functions
+- **virtual-buttons-2037.md** - Complete #2037 virtual button guide
 
-**Important distinctions:**
-- **G28** = Move to home back-off position (Pr122-124)
-- **G53 X0 Y0 Z0** = Move to machine coordinate zero (true machine origin)
-- **G54 X0 Y0 Z0** = Move to WCS zero (work coordinate zero)
+**Community Knowledge:**
+- **community-patterns.md** - Proven macro patterns from experienced users
+- **user-tested-patterns.md** - Production-tested macros
+- **advanced-macro-mathematics.md** - Formula library by Nikolay Zvyagintsev
+- **dual-gantry-auto-squaring.md** - Reference: dual-switch method (not used)
 
-**When to use G28:**
-```gcode
-; Safe parking after job (near home switches)
-G28 X0 Y0 Z0  ; Go to home back-off position
+### 🔧 Example Macros (22 Files)
 
-; This is DIFFERENT from saved positions
-G53 X#1153 Y#1154  ; Go to saved machine coordinate
-```
+**Production Macros:**
+- Complete homing sequences (Z→X→Y→B)
+- Tool change position management
+- WCS offset auto-detection
+- Spindle warmup routines
+- Variable inspection tools
+- Persistence testing utilities
 
-**G28 syntax on M350:**
-```gcode
-; Standard G28 usage
-G91 G28 X0 Y0 Z0  ; Incremental mode, move to home back-off
-G90               ; Return to absolute mode
+**Community Examples:**
+- Thread milling (internal & external)
+- Arc movement patterns
+- Probe operations
+- Safe movement templates
 
-; Or direct G28 (works on M350)
-G28 X0 Y0 Z0      ; Move to home back-off positions
-```
+### 📖 Reference Materials
 
-**Why this matters:**
-- G28 is useful for safe parking near home switches
-- But it's NOT the same as your custom park positions (#1153-#1154)
-- And it's NOT machine zero (G53 X0 Y0 Z0)
-- It's the comfortable back-off distance from switches set in Pr122-124
-
----
-
-### 4. Variable Priming Bug (CRITICAL)
-
-**Problem**: Assigning system variables to uninitialized user variables causes controller freeze
-
-**SYMPTOM**: Controller hangs when executing lines like `#100 = #880` if #100 hasn't been initialized
-
-**✅ SOLUTION - Always Prime Variables:**
-```gcode
-; WRONG - Uninitialized variable
-#100 = #880  ; May cause freeze!
-
-; CORRECT - Prime first, then assign
-#100 = 0     ; Initialize with any constant
-#100 = #880  ; Now safe to assign system variable
-```
-
-**Priming value doesn't matter** (can be 0, 1, or any number):
-```gcode
-#100 = 1     ; This works too
-#100 = #880  ; Safe
-```
-
-**Community observation**: Freeze mainly happens with persistent storage (#1153+). Local variables (#0-#499) may work without priming in practice, but always prime for safety.
+- **Variables-ENG_01-04-2025.xlsx** - Complete variable map (1339 rows)
+- **G-M-code_full_list.xlsx** - G/M code reference
+- **DDCSE_Post-processor.cps** - Current Fusion 360 post-processor
+- **Official PDFs** - G31 specification, Virtual buttons, Parameter descriptions
+- **eng parameter file** - Controller parameter definitions
 
 ---
 
-### 5. Display Formatting Rules
+## Quick Start
 
-**Problem**: Format codes need square brackets in #1505 messages
+### Installation
 
-**✅ CORRECT - Square Brackets:**
-```gcode
-#1510 = #880
-#1511 = #881
-#1505 = -5000(Position: X=[%.3f] Y=[%.3f])  ; Square brackets required
+1. **Download** the latest `ddcs-expert.skill` file from this repository
+2. **Upload** to Claude.ai or Claude desktop app
+3. **Access** - The skill will be available in your Claude interface
+
+### Using the Skill
+
+The skill file is a knowledge base that Claude can reference when helping with:
+- Writing macros for DDCS M350 controllers
+- Troubleshooting controller quirks
+- Understanding variable behavior
+- Planning tool change workflows
+- Configuring dual-gantry machines
+- Setting up probes and sensors
+
+**Example prompts:**
 ```
-
-**❌ WRONG - Regular Parentheses:**
-```gcode
-#1505 = -5000(Position: X=(%.3f) Y=(%.3f))  ; Won't format
-```
-
-**Available format codes:**
-- `[%.0f]` - Integer (no decimals)
-- `[%.1f]` - 1 decimal place
-- `[%.2f]` - 2 decimal places
-- `[%.3f]` - 3 decimal places (precision work)
-
----
-
-### 6. Parameter Mapping Rule
-
-**Critical Rule**: "Pr" numbers in UI usually map to `#Pr+500`
-
-```
-Pr1 (UI) = #501 (macro variable)
-Pr129 (UI) = #629 (macro variable)
-Pr500 (UI) = #1000 (macro variable)
-```
-
-**EXCEPTION**: System variables like machine coordinates don't follow this rule:
-- Machine X = #880 (not Pr380)
-- Machine Y = #881 (not Pr381)
-
-**Always verify** in `Variables-ENG_01-04-2025.xlsx` - the Pr+500 rule is a guideline, not absolute.
-
----
-
-## Machine Coordinate System (VERIFIED)
-
-### Machine Coordinate Spaces
-
-**Your Ultimate Bee 1010 Configuration:**
-
-| Axis | Direction | Range | Notes |
-|------|-----------|-------|-------|
-| X | POSITIVE | 0 to +Max (~750mm) | Normal positive space |
-| Y | NEGATIVE | 0 to -Max (~-750mm) | **Travels in negative direction** |
-| Z | NEGATIVE | 0 to -Max (~-100mm) | **Table drops = negative Z** |
-| A | NEGATIVE | Follows Y | Dual-gantry slave axis |
-
-**Read machine coordinates:**
-```gcode
-#880  ; Current X machine position (0 to +max)
-#881  ; Current Y machine position (0 to -max, NEGATIVE)
-#882  ; Current Z machine position (0 to -max, NEGATIVE)
-#883  ; Current A machine position (synced with Y)
-```
-
-**Critical understanding:**
-- X increases as gantry moves right
-- Y increases (becomes less negative) as gantry moves forward
-- Z increases (becomes less negative) as table rises
-
----
-
-## Work Coordinate Offset Map (Stride = 5)
-
-**VERIFIED**: WCS offsets use stride of 5 between coordinate systems
-
-| WCS | Index (#578) | X Offset | Y Offset | Z Offset | A Offset |
-|-----|--------------|----------|----------|----------|----------|
-| G54 | 1 | #805 | #806 | #807 | #808 |
-| G55 | 2 | #810 | #811 | #812 | #813 |
-| G56 | 3 | #815 | #816 | #817 | #818 |
-| G57 | 4 | #820 | #821 | #822 | #823 |
-| G58 | 5 | #825 | #826 | #827 | #828 |
-| G59 | 6 | #830 | #831 | #832 | #833 |
-
-**To set WCS zero**, write machine coordinate to offset variable:
-```gcode
-#805 = #880  ; Set G54 X zero at current machine position
-```
-
-**Calculate offset for active WCS:**
-```gcode
-#100 = #578               ; Get active WCS (1-6)
-#101 = 805 + [#100-1]*5   ; Calculate X offset address
-#[#101] = #880            ; Set X zero for active WCS
-```
-
-**Important**: Write the MACHINE coordinate value, not zero!
-- WCS offset = Current machine position
-- Work coordinate will display as 0.000 after setting
-
----
-
-## Your Machine-Specific Reference Values
-
-### G54 Fence System (Your Ultimate Bee 1010)
-
-**These are YOUR verified machine reference values** - use to restore G54 if accidentally lost:
-
-| Reference | Axis | Machine Coordinate | Purpose |
-|-----------|------|-------------------|---------|
-| G54 Fence | X | 42.650 | Reference X zero position |
-| G54 Fence | Y | -661.186 | Reference Y zero position |
-| Spoilboard | Z | -87.336 | Z zero surface height |
-
-**Restore G54 macro:**
-```gcode
-(RESTORE G54 FENCE DEFAULTS - Ultimate Bee 1010 Specific)
-#805 = 0
-#806 = 0  
-#807 = 0
-
-#805 = 42.650     ; Restore X fence
-#806 = -661.186   ; Restore Y fence  
-#807 = -87.336    ; Restore Z spoilboard
-
-#1505 = -5000(G54 Fence Restored!)
-M30
-```
-
-**When to use**: If you accidentally overwrite G54 and lose your fence reference.
-
-### Back-Off from Home Positions
-
-**Your machine's verified back-off distances** (Pr122-124):
-
-```gcode
-#622  ; X Back Home = 5.0mm (POSITIVE space)
-#623  ; Y Back Home = -5.0mm (NEGATIVE space)
-#624  ; Z Back Home = -5.0mm (NEGATIVE space)
-```
-
-These are the distances the axes back off from limit switches after homing.
-
----
-
-## Common System Parameters (Read/Write)
-
-**VERIFIED**: Macro Variable = UI Parameter + 500
-
-| Parameter (UI) | Macro Variable | Description | Your Machine Value |
-|----------------|----------------|-------------|-------------------|
-| Pr 0 | #500 | Start Speed | Min speed before accel |
-| Pr 61 | #561 | Default Feed | Used if F missing |
-| Pr 70 | #570 | Z Lift Distance | Retract on Pause/Stop |
-| Pr 82 | #582 | Max Spindle RPM | 24,000 RPM limit |
-| Pr 91 | #591 | Z Lift Enable | 0=No, 1=Lift on Pause |
-| Pr 122 | #622 | X Back Home | 5.0mm (positive) |
-| Pr 123 | #623 | Y Back Home | -5.0mm (negative) |
-| Pr 124 | #624 | Z Back Home | -5.0mm (negative) |
-| Pr 129 | #629 | Probe Thickness | Touch plate thickness (mm) |
-| Pr 130 | #630 | Fixed Sensor Enable | 0=Disable, 1=Enable |
-| Pr 132 | #632 | Probe Speed | Initial G31 feedrate |
-| Pr 135 | #635 | Fixed Probe X | Machine X for sensor |
-| Pr 136 | #636 | Fixed Probe Y | Machine Y for sensor |
-| Pr 269 | #769 | Debug Message | Set to 1 for #1503 text |
-| - | #578 | WCS Index | Active WCS (1=G54, 2=G55...) |
-
----
-
-## User Storage Map (VERIFIED PERSISTENT)
-
-**Your allocated persistent storage** - do not overwrite, use Available slots:
-
-| Function | Variables | Status | Macro |
-|----------|-----------|--------|-------|
-| Safe Park Position | #1153 (X), #1154 (Y) | ✅ IN USE | SAVE_safe_park_position.nc |
-| Tool Change Position | #1155 (X), #1156 (Y) | ✅ IN USE | SAVE_tool_change_position.nc |
-| Available | #1157 - #1169 | 🟢 FREE | Available for expansion |
-| Probe Config | #1170 - #1175 | 🟡 RESERVED | Reserved for probe settings |
-| Available | #1176 - #1193 | 🟢 FREE | Available for use |
-| G-code Temp Variables | #2038 | 🟡 SYSTEM | "Self-define G code Temporary variables" |
-| Available (Medium) | #2039 - #2071 | 🟢 FREE | 33 variables, persistent |
-| Function Keys K1-K8 | #2072 - #2079 | 🟡 SYSTEM | Function key indicator addresses |
-| Available (LARGE) | #2500 - #2599 | 🟢 FREE | 100 variables, **VERIFIED PERSISTENT** (XLSX confirmed 'B' status) |
-
-**Note on #2500-#2599**: Earlier versions of Variables-ENG_01-04-2025.xlsx incorrectly marked this as "does not work". **Updated file (01-04-2025) confirms status 'B' (persisted after reboot)**. User testing and official documentation now aligned.
-
-### Persistence Rules (VERIFIED)
-
-**NON-PERSISTENT (Resets on reboot):**
-- `#0 - #499` - User variables, temporary storage only
-
-**PERSISTENT (Survives reboot):**
-- `#1153 - #1193` - Gap in system variables, verified safe (41 variables)
-- `#2039 - #2071` - Persistent range, verified working (33 variables)
-- `#2500 - #2599` - Large persistent block, **user-verified working** (100 variables)
-
-**Total available persistent storage: 174 variables!**
-
-**DO NOT use #0-#499 for storage** - will reset to 0.000 on power cycle!
-
----
-
-## The Three Numbering Systems
-
-The DDCS M350 uses THREE different numbering schemes:
-
-### 1. ENG File Format (Parameter Numbers)
-- Format: `#0`, `#1`, `#129`, `#880`
-- This is the **Parameter Number (Pr#)**
-- Found in eng file from controller
-- **NOT the macro address!**
-
-### 2. Controller UI Display
-- Format: `Pr0`, `Pr1`, `Pr129`
-- Same as eng file number
-- What you see in parameter interface
-
-### 3. Macro/G-Code Address (What You Actually Write)
-- Format: `#500`, `#629`, `#880`
-- Memory address in variable space
-- **This goes in your .nc files**
-
-### The Critical Mapping
-
-```
-eng file "#129" → Pr129 (UI) → #629 (macro) via Variables-ENG_01-04-2025.xlsx
-```
-
-**NEVER assume** eng "#number" = macro "#number"
-
-Always use **BOTH** reference files:
-1. `Variables-ENG_01-04-2025.xlsx` - Find macro address
-2. `eng` - Understand parameter behavior
-
----
-
-## Standard Macro Template (V1.22)
-
-```gcode
-%
-(Title: <Macro Name>)
-(Description: <Function>)
-
-(--- PRIMING BLOCK ---)
-#100 = 0
-#101 = 0
-#102 = 0
-#1153 = 0  ; If using persistent storage
-
-(--- STATE SAVE ---)
-#100 = #4003  ; Save G90/G91 state
-
-(--- MAIN LOGIC ---)
-M5    ; Stop spindle for safety
-G90   ; Absolute mode
-
-; [INSERT LOGIC HERE]
-
-(--- STATE RESTORE ---)
-G#100  ; Restore G90/G91 state
-
-M30
-%
+"Write a macro to home all axes on DDCS M350"
+"How do I work around the G53 bug?"
+"What variables are persistent across reboots?"
+"Help me set up a PNP probe on an NPN controller"
+"Create a K-button macro to jump to MDI page"
 ```
 
 ---
 
----
+## Key Features
 
-## Parameter Access & Passwords
+### ✅ Production-Tested
 
-### Default Access Passwords
+All macros and documentation verified on:
+- **Machine**: Ultimate Bee 1010 (1000×1000mm)
+- **Controller**: DDCS Expert M350 (V1.22 firmware)
+- **Configuration**: Dual-gantry Y-axis, rotary B-axis, manual tool changes
 
-**Use with EXTREME caution** - changing parameters can damage your machine!
+### ✅ Controller Quirks Documented
 
-| Access Level | Password | Capabilities |
-|-------------|----------|--------------|
-| Operator | 666666 | Basic parameter viewing and simple adjustments |
-| Admin | 777777 | Advanced parameter modifications |
-| Super Admin | 888888 | **ALL parameters** - can damage machine! |
+**Critical workarounds included:**
+- G10 WCS writing broken → Use direct parameter writing
+- G53 requires Z-axis movement first → Safe movement patterns
+- G28 not configured → Alternative homing methods
+- Variable washing required → Priming patterns documented
+- #2500-2599 persistence confirmed → Complete storage map
 
-**⚠️ CRITICAL**: Always backup parameters to USB before making ANY changes!
+### ✅ Complete Hardware Documentation
 
-### Critical Parameter for Macros
+- Input assignments (IN01-IN23 mapped)
+- Wiring architecture (hybrid DB37 + direct-wired)
+- Sensor types (NPN/PNP compatibility)
+- Motor configuration (dual-gantry slave setup)
+- Probe specifications (tool setter, puck, 3D probe)
 
-**Pr76 (#0076) - Macro Enable**
-```
-Menu → Parameters → Pr76
-Set to: OPEN
-```
+### ✅ Workflow Solutions
 
-**Without this setting, NO macros will execute!** This is the first thing to check if macros aren't running.
-
-### Simulation Parameter
-
-**Pr245 (#0245) - Simulation Mode**
-```
-Set to: "line"
-```
-
-Enables line-by-line simulation for testing macros before running on machine.
-
-**Other modes:**
-- `3D` - 3D graphical simulation
-- `Statue` - Static view
-- May affect whether simulation runs
+- **Manual tool changes**: Separate toolpath strategy documented
+- **Gantry squaring**: Single-switch calibration method
+- **PNP probe fix**: Complete signal inverter guide
+- **K-button automation**: Navigation and utility macros
+- **Fusion 360 integration**: Working post-processor included
 
 ---
 
-## Investigation Process for ANY Variable
+## Documentation Highlights
 
-**STEP 1**: Check `Variables-ENG_01-04-2025.xlsx`
-- Find the macro address
-- Check if it's a parameter (has Pr# column)
-- Check if it's read-only (R/O marking)
+### CORE_TRUTH.md - The Essential Guide
 
-**STEP 2**: Check `eng` file
-- Find parameter behavior
-- Menu location (`-m` flag)
-- Read/write permissions (`-p` flag)
-- Min/max ranges
+**Critical "Core Truths" about M350 firmware:**
+- G10 WCS writing is broken
+- G53 machine coordinates require Z-first movement
+- G28 reference points not configured by default
+- Variable washing required before assignment
+- Dialog message formatting quirks
 
-**STEP 3**: Cross-reference
-- XLSX = WHAT the macro address is
-- eng = HOW the parameter behaves
+**175+ verified patterns and workarounds**
 
-**STEP 4**: Test safely
-- Prime variable first
-- Test on scrap material
-- Verify result with READ_VAR.nc
+### hardware-config.md - Complete Machine Manifest
+
+**15 comprehensive sections:**
+1. Machine specifications
+2. Motor & drive configuration
+3. Sensors & IO (complete input map)
+4. Control architecture
+5. Spindle & VFD
+6. Machine construction
+7. Accessories & tooling
+8. Rotary axis (K-80)
+9. Soft limits & travel
+10. Parameter quick reference
+11. Dual-gantry synchronization
+12. Tool change workflow
+13. Probe configuration
+14. Key machine characteristics
+15. Troubleshooting
+
+### user-storage-map.md - 174 Persistent Variables
+
+**Complete allocation guide:**
+- System-reserved ranges
+- User-available ranges
+- Persistence verified ranges
+- Usage recommendations
+- Collision avoidance strategies
+
+### pnp-to-npn-converter.md - PNP Probe Solution
+
+**Three complete circuit designs:**
+1. NPN transistor (recommended - $0.50)
+2. Relay-based (simple - $3-5)
+3. Opto-isolator (best isolation - $1-2)
+
+**Includes**: Parts lists, wiring diagrams, testing procedures, troubleshooting
 
 ---
 
-## Critical Reminders
+## Machine Configuration (Reference)
 
-1. ✅ **G10 is BROKEN** - Use direct parameter writing
-2. ✅ **G53 requires variables** - No constants, no G0/G1 on same line
-3. ✅ **G28 goes to back-off positions** - Uses Pr122-124 (#622-#624), not machine zero
-4. ✅ **Always prime variables** - Prevents freeze bug
-5. ✅ **Format codes need square brackets** - `[%.3f]` not `(%.3f)`
-6. ✅ **Pr + 500 = macro address** - Usually (verify in XLSX)
-7. ✅ **Y and Z are NEGATIVE space** - Your machine coordinate system
-8. ✅ **#0-#499 NOT persistent** - Use #1153-#1193, #2039-#2071, or #2500-#2599 for storage
-9. ✅ **#2500-#2599 VERIFIED PERSISTENT** - Confirmed in Variables-ENG_01-04-2025.xlsx (01-04-2025) status 'B'
-10. ✅ **WCS stride = 5** - Not 1, calculate with `805 + [index-1]*5`
-11. ✅ **Standard FANUC rules DON'T apply** - M350 is different!
+This skill was developed on the following configuration:
 
-**Available persistent storage:**
-- `#1153-#1193` (41 variables) - Verified safe gap
-- `#2039-#2071` (33 variables) - Verified working range
-- `#2500-#2599` (100 variables) - User-verified working (XLSX marking incorrect)
-- **Total: 174 persistent variables available**
+**CNC Machine:**
+- Ultimate Bee 1010 (1000×1000mm working area)
+- Dual-gantry Y-axis (Y1 master, A/Y2 slave)
+- Y-axis negative space (0 to -735mm)
+- C-Beam 40×80mm frame construction
 
-**Important position distinctions:**
-- `G28 X0 Y0 Z0` → Home back-off positions (X=5.0, Y=-5.0, Z=-5.0 from switches)
-- `G53 X0 Y0 Z0` → True machine coordinate zero
-- `G53 X#1153 Y#1154` → Your saved custom park positions
-- `G54 X0 Y0 Z0` → WCS zero (work coordinate system)
+**Controller:**
+- DDCS Expert (M350) V1.22 firmware
+- Magic Cube breakout (v4.1 legacy system)
+- Hybrid wiring (DB37 + direct-wired sensors)
+
+**Axes:**
+- X: 756mm travel, SFS1210 ballscrew, 500 pulse/mm
+- Y: 735mm travel (dual motor), SFS1210 ballscrew, 500 pulse/mm  
+- Z: Verified travel, SFU1204 ballscrew, 1250 pulse/mm
+- B: Rotary K-80, 6:1 ratio, DM556 driver, 3200 microsteps
+
+**Spindle:**
+- 2.2kW water-cooled (ER20 collets, 0-24,000 RPM)
+- Huanyang VFD control
+
+**Sensors:**
+- IN01: Rotary B-axis homing (NPN proximity)
+- IN02: Tool setter (passive)
+- IN03: 3D touch probe (PNP - requires converter)
+- IN10: Z-probe puck (passive)
+- IN20: X-axis home (mechanical switch)
+- IN21: Z-axis home (mechanical switch)
+- IN23: Y-axis home (mechanical switch)
 
 ---
 
-**Remember**: When standard FANUC code doesn't work, there's usually a DDCS-specific workaround in this document. Read before coding, test on scrap, verify results!
+## Community Contributions
+
+This skill incorporates knowledge from:
+- Nikolay Zvyagintsev (advanced mathematics formulas)
+- DDCS Expert community (proven patterns)
+- Official DDCS documentation (verified against V1.22)
+- Production testing (Ultimate Bee 1010)
+
+---
+
+## Version Information
+
+**Current Skill Version**: Check filename for date  
+**Controller Firmware**: V1.22 (verified)  
+**Last Major Update**: January 2026  
+**Total Size**: ~843KB (compressed .skill file)  
+**File Count**: 46 files (18 markdown + 22 macros + 6 reference files)
+
+---
+
+## File Format
+
+The `.skill` file is a **zip archive** containing:
+- Markdown documentation files
+- Example macro .nc files  
+- Reference materials (XLSX, PDF, CPS)
+- Organized in `/references/` structure
+
+**To extract**: Rename `.skill` → `.zip` and extract with any zip utility
+
+---
+
+## Usage Notes
+
+### ⚠️ Important Disclaimers
+
+- **Machine-specific**: Documentation reflects Ultimate Bee 1010 configuration
+- **Firmware-specific**: Verified on V1.22 - other versions may differ
+- **Not official**: Community-developed, not endorsed by DDCS manufacturer
+- **Use at own risk**: Test all macros safely before production use
+- **Backup settings**: Always backup controller parameters before changes
+
+### ✅ Best Practices
+
+- Read CORE_TRUTH.md first
+- Check hardware-config.md for your machine differences
+- Test macros in air (no tool, safe Z height) before production
+- Keep soft limits enabled during testing
+- Use feed rate override for initial testing
+- Document any modifications you make
+
+---
+
+## Support & Updates
+
+**Repository**: fchabot-dxf/DDCS-Expert-skill  
+**Updates**: Skill file replaced periodically with latest version  
+**README**: This file is static - skill documentation evolves
+
+**For DDCS Expert controller support:**
+- Official DDCS documentation
+- DDCS Expert user forums
+- CNC community resources
+
+**This is a documentation project, not a support channel**
+
+---
+
+## File Organization
+
+```
+ddcs-expert/
+├── SKILL.md (main index/navigation)
+├── references/
+│   ├── CORE_TRUTH.md (essential reading)
+│   ├── hardware-config.md (machine manifest)
+│   ├── macrob-programming-rules.md
+│   ├── user-storage-map.md
+│   ├── pnp-to-npn-converter.md
+│   ├── gantry-squaring-calibration.md
+│   ├── k-button-assignments.md
+│   ├── ... (14 more .md files)
+│   ├── example-macros/
+│   │   ├── fndzero.nc
+│   │   ├── SPINDLE_WARMUP.nc
+│   │   ├── ... (20 more .nc files)
+│   ├── Variables-ENG_01-04-2025.xlsx
+│   ├── G-M-code_full_list.xlsx
+│   ├── DDCSE_Post-processor.cps
+│   └── ... (3 PDFs + eng file)
+```
+
+---
+
+## License
+
+**Documentation**: Shared for educational and reference purposes  
+**Macros**: Use and modify freely, test thoroughly before production use  
+**Community Knowledge**: Credit to original contributors where noted  
+
+**No warranty expressed or implied. Use at your own risk.**
+
+---
+
+## Changelog
+
+**Skill updates are periodic - check filename date for version**
+
+Major milestones:
+- **Jan 2026**: Complete documentation rewrite with V1.22 verification
+- **Jan 2026**: PNP-to-NPN converter guide added
+- **Jan 2026**: K-button assignment map added
+- **Jan 2026**: Dual-gantry single-switch calibration documented
+- **Jan 2026**: 174 persistent variables verified
+- **Jan 2026**: Hardware manifest completed
+- **Jan 2026**: CORE_TRUTH updated to V1.22
+
+---
+
+## Quick Links (Within Skill)
+
+**Start here:**
+- `SKILL.md` - Main navigation and index
+- `CORE_TRUTH.md` - Essential controller quirks
+
+**Most useful:**
+- `hardware-config.md` - Complete reference
+- `user-storage-map.md` - Variable allocation
+- `macrob-programming-rules.md` - Syntax rules
+- `example-macros/` - Working code examples
+
+**Problem solvers:**
+- `pnp-to-npn-converter.md` - PNP probe fix
+- `variable-priming-card.md` - Variable washing bug
+- `gantry-squaring-calibration.md` - Squaring method
+
+---
+
+**Download the latest `.skill` file and import into Claude for comprehensive DDCS Expert M350 knowledge!**
+
+**Repository**: https://github.com/fchabot-dxf/DDCS-Expert-skill
