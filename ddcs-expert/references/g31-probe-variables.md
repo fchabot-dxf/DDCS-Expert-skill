@@ -8,6 +8,65 @@
 
 ---
 
+## CRITICAL: Probe Modes - What Gets Changed
+
+The controller has **built-in probe routines** (O502 subroutine) with three modes controlled by **Pr1502**:
+
+### **Mode 0: Floating Probe (Puck-Style)**
+- **Changes**: ✅ WCS Z offset (G54/G55/etc)
+- **Does NOT Change**: ❌ Tool offset
+- **Use**: Find workpiece top surface
+- **Storage**: Updates `#[807+[#578-1]*5]` (active WCS Z offset)
+- **Calculation**: `WCS_Z = (Probe_Trigger - Puck_Thickness) - Tool_Offset`
+
+### **Mode 1: Fixed Probe - First Use**
+- **Changes**: ✅ WCS Z offset AND ✅ Tool offset
+- **Use**: Establish work surface relative to fixed probe (run once per setup)
+- **Storage**: Updates both WCS Z and `#[1430 + (Tool-1)]`
+- **Calculation**: Sets reference tool length and work surface offset
+
+### **Mode 2: Fixed Probe - Tool Change** ⭐ **(Most Common)**
+- **Changes**: ✅ Tool offset ONLY
+- **Does NOT Change**: ❌ WCS Z offset
+- **Use**: Measure new tool lengths during tool changes
+- **Storage**: Updates `#[1430 + (Current_Tool - 1)]` (tool offset array)
+- **Calculation**: `Tool_Offset = Probe_Trigger_Position` (machine coordinate)
+
+**Tool Offset Storage:**
+- Real tools (T1-T20): `#[1430 + (Tool_Number - 1)]`
+  - T1 → #1430, T2 → #1431, T5 → #1434, etc.
+- Virtual tools (if configured): `#[1473 + (Tool_Number - Pr1301 - 1)]`
+
+**Key Difference:**
+- **Floating probe**: Moves your work zero to match the workpiece
+- **Fixed probe (Mode 2)**: Keeps work zero, only updates tool lengths
+
+---
+
+## Homing vs Probing (Don't Confuse These!)
+
+**Homing Routines** (fndZ.nc, fndzero.nc):
+- Call `M98P501X#` (O501 subroutine)
+- Find **limit switches** to establish machine zero
+- Do NOT measure tools or workpieces
+- Set axis homed flags (#1515-#1518)
+
+**Probe Routines** (probe.nc, floating/fixed probe):
+- Call `M98P502` (O502 subroutine)
+- Measure tools or workpiece surfaces
+- Use G31 command with probe input signals
+- Update WCS offsets or tool offsets
+
+**See Your Actual Firmware:**
+- `firmware backup 31-12-2025/SystemBak_19700101000156/nand1-1/slib-g.nc`
+- Line 157: O501 (single-axis homing subroutine)
+- Line 306: O502 (fixed/floating probe subroutine)
+- Contains complete probe logic with all three modes (Pr1502: 0, 1, 2)
+
+---
+
+---
+
 ## G31 Configuration Variables (1900-1919)
 
 ### Probe Signal Port Assignment (1900-1904)

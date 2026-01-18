@@ -56,6 +56,11 @@ Example: UI shows "Pr129" (probe thickness) → Use `#629` in macro code
 - `fusion-post-processor.md` - **Fusion 360 post-processor integration with victory dance & dynamic parking**
 - `virtual-buttons-2037.md` - **Virtual button automation - simulate controller button presses**
 - `example-macros/` - **Directory of actual working .nc files you can copy and modify**
+- `firmware backup 31-12-2025/` - **Complete firmware backup from your actual controller (12-31-2025)**
+  - Contains all your current macros (M files, key files, probe routines)
+  - `slib-g.nc`: System library with O501 (homing) and O502 (probe) subroutines
+  - `slib-m.nc`: M-code system library
+  - Use to examine actual controller behavior and macro implementations
 
 ### Lookup References (Use As Needed)
 - `Variables-ENG_01-04-2025.xlsx` - Complete variable mapping (eng# → Pr# → macro address)
@@ -247,6 +252,28 @@ M30
 ```
 
 **Official documentation**: See `references/M350_instruction_description-G31.pdf` for complete specification.
+
+## Built-in Probe Routines (O502 Subroutine)
+
+The controller has **built-in probe modes** accessed via interface buttons or `M98P502`:
+
+| Mode (Pr1502) | Changes WCS Z? | Changes Tool Offset? | Use Case |
+|---------------|----------------|---------------------|----------|
+| 0 - Floating Probe | ✅ YES | ❌ NO | Find workpiece surface |
+| 1 - Fixed (First) | ✅ YES | ✅ YES | Establish work surface vs probe |
+| 2 - Fixed (Tool Change) | ❌ NO | ✅ YES | Measure tool lengths only |
+
+**Tool Offset Storage**: `#[1430 + (Tool_Number - 1)]` (T1=#1430, T2=#1431, etc.)
+
+**Key Difference:**
+- **Floating probe** → Moves your work zero to workpiece
+- **Fixed probe (Mode 2)** → Keeps work zero, updates tool length only
+
+**Homing vs Probing:**
+- **fndZ.nc, fndzero.nc** → Homing routines (find limit switches), call O501
+- **probe.nc** → Probe routine (measure tools/workpieces), calls O502
+
+See `references/g31-probe-variables.md` for detailed probe mode behavior.
 
 See `references/community-patterns.md` for complete hole-center and surface-finding routines.
 

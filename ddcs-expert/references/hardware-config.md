@@ -904,6 +904,20 @@ These are used for parking/setup, NOT for M0 tool changes mid-file:
 - **Z-Probe Puck (IN10)**: Set workpiece Z-zero, establish WCS offsets
 - **3D Touch Probe (IN03)**: Once working - edge finding, center finding, surface mapping
 
+**Probe Mode Configuration (Pr1502):**
+- **Mode 0**: Floating probe (Z-Probe Puck on IN10) - Changes WCS Z only
+- **Mode 2**: Fixed probe tool change (Tool Setter on IN02) - Changes tool offset only
+- **Mode 1**: Fixed probe first use (Tool Setter on IN02) - Changes both WCS Z and tool offset
+
+**Parameter Assignments:**
+- **Pr1075** (#1075): Fixed probe input = **2** (Tool Setter)
+- **Pr1078** (#1078): Floating probe input = **10** (Z-Probe Puck)
+- See `g31-probe-variables.md` for complete probe configuration details
+
+**Firmware Reference:**
+- Built-in probe routines: `firmware backup 31-12-2025/.../slib-g.nc` line 306 (O502)
+- Homing routines: `firmware backup 31-12-2025/.../slib-g.nc` line 157 (O501)
+
 ---
 
 ## **14. Key Machine Characteristics**

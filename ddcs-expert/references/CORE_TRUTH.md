@@ -544,3 +544,28 @@ Enables line-by-line simulation for testing macros before running on machine.
 ---
 
 **Remember**: When standard FANUC code doesn't work, there's usually a DDCS-specific workaround in this document. Read before coding, test on scrap, verify results!
+
+---
+
+## Firmware Reference
+
+**Your actual controller firmware backup** (12-31-2025) is available in:
+- `firmware backup 31-12-2025/SystemBak_19700101000156/nand1-1/`
+
+**Key files:**
+- `slib-g.nc` - System library with G-code subroutines
+  - Line 157: **O501** - Single-axis homing routine (called by fndZ.nc, fndzero.nc)
+  - Line 306: **O502** - Fixed/floating probe routine (three modes via Pr1502)
+  - Line 523: **O503** - Dual Y-axis homing routine
+- `slib-m.nc` - M-code system library (M30 end program, outputs, etc.)
+- `fndZ.nc`, `fndzero.nc` - Your homing macros (call O501)
+- `probe.nc` - Your probe macro (calls O502)
+- `key-*.nc` - K-button macros (programmable buttons)
+
+**Use these to:**
+- See exactly how built-in routines work
+- Understand controller-specific behavior
+- Copy/modify proven working code
+- Debug unexpected macro behavior
+
+---
