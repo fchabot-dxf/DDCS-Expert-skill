@@ -11,7 +11,7 @@
 
 This skill provides complete documentation, proven macros, and reference materials for operating CNC machines with the DDCS Expert (M350) controller. Built from production experience on an Ultimate Bee 1010 dual-gantry CNC machine.
 
-**Download the latest `.skill` file from this repository and import into Claude (claude.ai or Claude desktop app)**
+**Download the latest `.skill` file from this repository and import into AI agent**
 
 ---
 
