@@ -915,8 +915,8 @@ These are used for parking/setup, NOT for M0 tool changes mid-file:
 - See `g31-probe-variables.md` for complete probe configuration details
 
 **Firmware Reference:**
-- Built-in probe routines: `firmware backup 31-12-2025/.../slib-g.nc` line 306 (O502)
-- Homing routines: `firmware backup 31-12-2025/.../slib-g.nc` line 157 (O501)
+- Built-in probe routines: `firmware-backup-2025-12-31/.../slib-g.nc` line 306 (O502)
+- Homing routines: `firmware-backup-2025-12-31/.../slib-g.nc` line 157 (O501)
 
 ---
 

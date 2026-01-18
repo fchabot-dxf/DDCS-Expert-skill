@@ -2,7 +2,7 @@
 
 This document covers integration patterns for Fusion 360 post-processors running on DDCS M350/Expert controllers, focusing on the non-standard variable addressing and WCS offset calculations required.
 
-**Current Post-Processor File**: `DDCSE_Post-processor.cps` (included in references)
+**Current Post-Processor File**: `Fusion360_DDCS_post-processor.cps` (included in references)
 - Based on: Autodesk FANUC generic post (V44207)
 - Customized for: DDCS M350 Ultimate Bee 1010
 - Features: Victory dance, dynamic WCS parking, manual tool changing
@@ -488,7 +488,7 @@ if (customPos == "posA") {
 - Manual tool change workflow
 - No G53 hardcoded constants (avoids M350 bug)
 
-**Current Post-Processor**: The complete working post-processor is included as `DDCSE_Post-processor.cps` in the same references directory. You can:
+**Current Post-Processor**: The complete working post-processor is included as `Fusion360_DDCS_post-processor.cps` in the same references directory. You can:
 - Use it directly in Fusion 360
 - Copy it as a starting point for customization
 - Reference it for specific implementation details

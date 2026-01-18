@@ -93,7 +93,7 @@ G0 X0 ;move to origin
 
 **Variable ranges:**
 - `#0 - #49` - User variables (verified working range)
-- `#100+` - See Variables-ENG_01-04-2025.xlsx for system variables
+- `#100+` - See DDCS_Variables_mapping_2025-01-04.xlsx for system variables
 
 **Best practice:**
 ```gcode
@@ -427,7 +427,7 @@ M30
 ## Additional Resources
 
 - **Variable priming**: See `variable-priming-card.md`
-- **Variable mapping**: See `Variables-ENG_01-04-2025.xlsx`
+- **Variable mapping**: See `DDCS_Variables_mapping_2025-01-04.xlsx`
 - **Display methods**: See `ddcs-display-methods.md`
 - **Controller quirks**: See `CORE_TRUTH.md`
 - **Example macros**: See `example-macros/` directory

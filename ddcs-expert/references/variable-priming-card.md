@@ -53,10 +53,10 @@
 
 **Verified working ranges:**
 - `#1153-#1193` (41 variables) - Gap in system variables
-- `#2039-#2071` (33 variables) - Per Variables-ENG_01-04-2025.xlsx
+- `#2039-#2071` (33 variables) - Per DDCS_Variables_mapping_2025-01-04.xlsx
 - `#2500-#2599` (100 variables) - **User-verified working** (XLSX marking is incorrect)
 
-**Note**: Variables-ENG_01-04-2025.xlsx incorrectly marks #2500-#2599 as "does not work" but production testing confirms this range works correctly for persistent storage.
+**Note**: DDCS_Variables_mapping_2025-01-04.xlsx incorrectly marks #2500-#2599 as "does not work" but production testing confirms this range works correctly for persistent storage.
 
 **Current status**: Evidence suggests washing may not be needed for persistent range
 

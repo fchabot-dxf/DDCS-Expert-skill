@@ -8,7 +8,9 @@ Official M350 documentation for programmatic control of controller interface but
 
 **Macro Variable**: `#2037` - Virtual button/key press control
 
-**Official Documentation**: `Virtual_button_function__2037_.pdf`
+**Official Documentation**: 
+- `Virtual_button_function__2037_.pdf` - Official specification
+- `Virtual_button_function_codes_COMPLETE.xlsx` - Complete KeyValue table (201 codes) with extended functions
 
 ## How #2037 Works
 
@@ -142,6 +144,108 @@ Where:
 | ... | ... | Continue through alphabet |
 
 **Note**: Full ASCII table available in official documentation.
+
+## Extended Function Codes (From Complete Table)
+
+The complete KeyValue table (`Virtual_button_function_codes_COMPLETE.xlsx`) contains **201 codes** including extended functions not in the basic PDF:
+
+### Axis Homing Commands (1512-1517)
+
+| Key Value | Function | #2037 Value | Usage |
+|-----------|----------|-------------|-------|
+| 1512 | All axis Go Home | 66048 | Home all axes |
+| 1513 | X Go Home | 66049 | Home X only |
+| 1514 | Y Go Home | 66050 | Home Y only |
+| 1515 | Z Go Home | 66051 | Home Z only |
+| 1516 | 4th Go Home | 66052 | Home A only |
+| 1517 | 5th Go Home | 66053 | Home B only |
+
+### Go to Work Zero (1518-1523)
+
+| Key Value | Function | #2037 Value | Usage |
+|-----------|----------|-------------|-------|
+| 1518 | All Go Work Zero | 66054 | All axes to WCS zero (no coordinate request) |
+| 1519 | X Go Work Zero | 66055 | X to WCS zero |
+| 1520 | Y Go Work Zero | 66056 | Y to WCS zero |
+| 1521 | Z Go Work Zero | 66057 | Z to WCS zero |
+| 1522 | 4th Go Work Zero | 66058 | A to WCS zero |
+| 1523 | 5th Go Work Zero | 66059 | B to WCS zero |
+
+**Note**: These commands execute immediately without requesting coordinates.
+
+### Axis Clear/Zero (1524-1529)
+
+| Key Value | Function | #2037 Value | Usage |
+|-----------|----------|-------------|-------|
+| 1524 | All axis Clear | 66060 | Zero all axis displays |
+| 1525 | X Clear | 66061 | Zero X display |
+| 1526 | Y Clear | 66062 | Zero Y display |
+| 1527 | Z Clear | 66063 | Zero Z display |
+| 1528 | 4th Clear | 66064 | Zero A display |
+| 1529 | 5th Clear | 66065 | Zero B display |
+
+### File Operations (1531-1533)
+
+| Key Value | Function | #2037 Value | Usage |
+|-----------|----------|-------------|-------|
+| 1531 | Copy | 66067 | Copy file to clipboard |
+| 1532 | Paste | 66068 | Paste file from clipboard |
+| 1533 | Copy USB↔Local | 66069 | Copy between USB and local storage |
+
+### K-Button Virtual Triggers (2536-2551) ⭐
+
+**CRITICAL**: Virtual buttons can trigger K-button macros programmatically!
+
+| Key Value | Function | #2037 Value | Usage |
+|-----------|----------|-------------|-------|
+| 2536 | K1 | 67072 | Execute key-1.nc macro |
+| 2537 | K2 | 67073 | Execute key-2.nc macro |
+| 2538 | K3 | 67074 | Execute key-3.nc macro |
+| 2539 | K4 | 67075 | Execute key-4.nc macro |
+| 2540 | K5 | 67076 | Execute key-5.nc macro |
+| 2541 | K6 | 67077 | Execute key-6.nc macro |
+| 2542 | K7 | 67078 | Execute key-7.nc macro |
+| 2543 | K8 | 67079 | Execute key-8.nc macro |
+| 2544 | K9 | 67080 | Execute key-9.nc macro |
+| 2545 | K10 | 67081 | Execute key-10.nc macro |
+| 2546 | K11 | 67082 | Execute key-11.nc macro |
+| 2547 | K12 | 67083 | Execute key-12.nc macro |
+| 2548 | K13 | 67084 | Execute key-13.nc macro |
+| 2549 | K14 | 67085 | Execute key-14.nc macro |
+| 2550 | K15 | 67086 | Execute key-15.nc macro |
+| 2551 | K16 | 67087 | Execute key-16.nc macro |
+
+**Example - Chain K-button macros:**
+```gcode
+; From inside key-1.nc, trigger key-2.nc
+#2037 = 67073  ; Press K2 button (2537 - 1000 + 65536)
+G04 P1.0
+```
+
+### Other Extended Codes
+
+| Key Value | Function | #2037 Value | Usage |
+|-----------|----------|-------------|-------|
+| 1256 | Del Down | 65792 | Delete all text below cursor |
+| 1315 | Change Page (Tab) | 65851 | Tab button |
+| 1342 | Start2 | 65878 | Alternative START button |
+| 1361 | Screenshot | 65897 | Save BMP to USB drive |
+| 1379 | Count | 65915 | Count mode button |
+| 1380 | Step | 65916 | Step mode button |
+| 1381 | MPG | 65917 | MPG mode button |
+| 1391 | NetDisk | 65927 | Network storage |
+| 1399 | CAM Menu | 65935 | CAM function menu |
+| 67050 | Soft Limit Enable | 131586 | Enable software limits |
+
+**Formula for extended codes:**
+```gcode
+; Same formula applies to ALL codes
+#2037 = 65536 + (KeyValue - 1000)
+
+; Examples:
+#2037 = 66048  ; Home all axes (1512)
+#2037 = 67072  ; Press K1 (2536)
+```
 
 ## Common Use Cases
 
@@ -472,9 +576,14 @@ The #2037 virtual button system enables powerful automation:
 - ✅ Feedrate/spindle overrides
 - ✅ Mode switching (Manual/MDI)
 - ✅ Operator-assisted workflows
+- ✅ **Axis homing/zeroing commands (1512-1529)**
+- ✅ **K-button macro chaining (2536-2551)**
+- ✅ **File operations automation (1531-1533)**
 
-**Official documentation**: `Virtual_button_function__2037_.pdf`
+**Official documentation**: 
+- `Virtual_button_function__2037_.pdf` - Basic specification
+- `Virtual_button_function_codes_COMPLETE.xlsx` - Complete table (201 codes)
 
 **Formula to remember**: `#2037 = 65536 + (KeyValue - 1000)`
 
-This feature transforms static macros into interactive, screen-aware automation routines.
+This feature transforms static macros into interactive, screen-aware automation routines with extended control over all controller functions.

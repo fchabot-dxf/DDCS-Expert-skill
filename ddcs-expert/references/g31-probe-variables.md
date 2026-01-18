@@ -2,7 +2,7 @@
 
 **Complete reference** for G31 probe command variables on DDCS M350/Expert controllers.
 
-**Source**: Variables-ENG_01-04-2025.xlsx official mapping
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx official mapping
 
 **Note**: These are SYSTEM variables (marked "S") - read-only or automatically set by controller.
 
@@ -58,7 +58,7 @@ The controller has **built-in probe routines** (O502 subroutine) with three mode
 - Update WCS offsets or tool offsets
 
 **See Your Actual Firmware:**
-- `firmware backup 31-12-2025/SystemBak_19700101000156/nand1-1/slib-g.nc`
+- `firmware-backup-2025-12-31/SystemBak_19700101000156/nand1-1/slib-g.nc`
 - Line 157: O501 (single-axis homing subroutine)
 - Line 306: O502 (fixed/floating probe subroutine)
 - Contains complete probe logic with all three modes (Pr1502: 0, 1, 2)

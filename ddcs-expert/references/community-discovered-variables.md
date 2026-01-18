@@ -179,11 +179,11 @@
 
 ---
 
-## ACTUAL Verified Discoveries from Variables-ENG_01-04-2025.xlsx
+## ACTUAL Verified Discoveries from DDCS_Variables_mapping_2025-01-04.xlsx
 
 ### #2039-#2071 - User Persistent Storage (33 Variables)
 
-**Source**: Variables-ENG_01-04-2025.xlsx (unmarked "S" range)  
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx (unmarked "S" range)  
 **Function**: Available for user persistent storage  
 **Status**: ✅ Verified working (Andrei's code)
 
@@ -213,7 +213,7 @@
 
 ### #2038 - G-code Temporary Variables
 
-**Source**: Variables-ENG_01-04-2025.xlsx  
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx  
 **Description**: "Possibly Self-define G code Temporary variables"  
 **Status**: ⚠️ Documented but function unclear
 
@@ -227,14 +227,14 @@
 
 ### #2500-#2599 - Large Persistent Storage (OFFICIALLY VERIFIED)
 
-**Source**: Variables-ENG_01-04-2025.xlsx (01-04-2025) + User testing  
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx (01-04-2025) + User testing  
 **Old XLSX Status**: "This range does not work" (INCORRECT - outdated file)  
 **New XLSX Status**: 'B' = "persisted after reboot" (CORRECT - confirmed 01-04-2025)  
 **Status**: ✅ **Officially verified persistent storage**
 
 **Critical update:**
-- **Old Variables-ENG_01-04-2025.xlsx** marked this as broken (red text, "does not work")
-- **New Variables-ENG_01-04-2025.xlsx (01-04-2025)** confirms status 'B' (persisted after reboot)
+- **Old DDCS_Variables_mapping_2025-01-04.xlsx** marked this as broken (red text, "does not work")
+- **New DDCS_Variables_mapping_2025-01-04.xlsx (01-04-2025)** confirms status 'B' (persisted after reboot)
 - **User testing** confirmed it works
 - **Official documentation now correct!**
 
@@ -253,7 +253,7 @@
 ```
 
 **Official confirmation:**
-- Variables-ENG_01-04-2025.xlsx updated 01-04-2025
+- DDCS_Variables_mapping_2025-01-04.xlsx updated 01-04-2025
 - Status changed from "-" (broken) to "B" (persistent)
 - User testing validates official documentation
 - Safe for production use
@@ -268,7 +268,7 @@
 
 ### #2072-#2079 - Function Key Indicators
 
-**Source**: Variables-ENG_01-04-2025.xlsx  
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx  
 **Description**: K1-K8 function key indicator addresses  
 **Status**: ✅ Documented system variables
 

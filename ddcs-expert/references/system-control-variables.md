@@ -2,7 +2,7 @@
 
 **Advanced system variables** for controlling panel LEDs, one-key probe, and system features.
 
-**Source**: Variables-ENG_01-04-2025.xlsx official mapping
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx official mapping
 
 **⚠️ WARNING**: These are system-level variables. Incorrect use may cause unexpected behavior!
 
@@ -303,7 +303,7 @@ N10
 - **G31 Probe Variables**: See `g31-probe-variables.md` for #1900-#1929
 - **Variable Priming**: See `variable-priming-card.md` for initialization requirements
 - **Display Methods**: See `ddcs-display-methods.md` for user feedback alternatives
-- **Complete Variable Map**: See `Variables-ENG_01-04-2025.xlsx` for all variables
+- **Complete Variable Map**: See `DDCS_Variables_mapping_2025-01-04.xlsx` for all variables
 
 ---
 

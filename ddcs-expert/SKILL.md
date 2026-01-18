@@ -38,7 +38,7 @@ The DDCS M350 uses **three different numbering schemes** - confusing them will b
 3. **Macro Address**: `#500`, `#629`, `#880` (what you write in G-code)
 
 **To find the correct macro address:**
-1. Check `references/Variables-ENG_01-04-2025.xlsx` - Column "Macro Var" shows what to use in code
+1. Check `references/DDCS_Variables_mapping_2025-01-04.xlsx` - Column "Macro Var" shows what to use in code
 2. Cross-reference with `references/eng` file for parameter behavior
 3. Common pattern: UI Parameter Pr[N] often maps to macro variable #[N+500]
 
@@ -56,15 +56,16 @@ Example: UI shows "Pr129" (probe thickness) → Use `#629` in macro code
 - `fusion-post-processor.md` - **Fusion 360 post-processor integration with victory dance & dynamic parking**
 - `virtual-buttons-2037.md` - **Virtual button automation - simulate controller button presses**
 - `example-macros/` - **Directory of actual working .nc files you can copy and modify**
-- `firmware backup 31-12-2025/` - **Complete firmware backup from your actual controller (12-31-2025)**
+- `firmware-backup-2025-12-31/` - **Complete firmware backup from your actual controller (12-31-2025)**
   - Contains all your current macros (M files, key files, probe routines)
   - `slib-g.nc`: System library with O501 (homing) and O502 (probe) subroutines
   - `slib-m.nc`: M-code system library
   - Use to examine actual controller behavior and macro implementations
 
 ### Lookup References (Use As Needed)
-- `Variables-ENG_01-04-2025.xlsx` - Complete variable mapping (eng# → Pr# → macro address)
-- `G-M-code_full_list.xlsx` - Supported G/M codes reference
+- `DDCS_Variables_mapping_2025-01-04.xlsx` - Complete variable mapping (eng# → Pr# → macro address)
+- `Virtual_button_function_codes_COMPLETE.xlsx` - **Complete #2037 KeyValue table (201 codes) - includes K-button triggers, axis commands**
+- `DDCS_G-M-code_reference.xlsx` - Supported G/M codes reference
 - `eng` - Raw parameter file from controller (behavior, limits, flags)
 - `M350_instruction_description-G31.pdf` - Official probe command specification
 - `Virtual_button_function__2037_.pdf` - Official virtual button control specification
@@ -165,12 +166,23 @@ Example: UI shows "Pr129" (probe thickness) → Use `#629` in macro code
 #2037 = 65908  ; M3 Spindle CW (KeyValue 1372)
 ```
 
+**Extended functions (201 total codes):**
+```gcode
+#2037 = 66048  ; Home all axes (KeyValue 1512)
+#2037 = 66054  ; All axes to work zero (KeyValue 1518)
+#2037 = 67072  ; Press K1 button (KeyValue 2536) - triggers key-1.nc macro
+#2037 = 67073  ; Press K2 button (KeyValue 2537) - chain K-button macros!
+```
+
 **Use cases:**
 - Automatic screen navigation
 - Reset controller state
 - Set feedrate/spindle overrides
 - Program start/pause control
 - Semi-automated workflows
+- **Axis homing/zeroing automation (1512-1529)**
+- **K-button macro chaining (2536-2551)**
+- **File operations (1531-1533)**
 
 **Example - Auto-reset after operation:**
 ```gcode
@@ -181,7 +193,7 @@ G04 P2.0       ; Wait for operator to read
 
 **CRITICAL**: Always add G04 delay (minimum 0.5 sec) after #2037 assignment.
 
-See `references/virtual-buttons-2037.md` for complete button table and `Virtual_button_function__2037_.pdf` for official specification.
+See `references/virtual-buttons-2037.md` for complete button table and `Virtual_button_function_codes_COMPLETE.xlsx` for all 201 KeyValue codes including extended functions.
 
 ## Variable Persistence Rules
 
@@ -699,7 +711,7 @@ See `references/fusion-post-processor.md` for:
 
 1. **Identify the task** - probe? WCS zero? position save?
 2. **Check CORE_TRUTH.md** - any broken commands involved?
-3. **Look up variables** in Variables-ENG_01-04-2025.xlsx
+3. **Look up variables** in DDCS_Variables_mapping_2025-01-04.xlsx
 4. **Copy template** - start with standard macro structure
 5. **Add priming block** - initialize all variables
 6. **Implement logic** - using proven patterns above
@@ -714,11 +726,12 @@ For detailed information on specific topics:
 - **PNP to NPN Converter**: See `references/pnp-to-npn-converter.md` - **Signal inverter for PNP probe compatibility**
 - **MacroB Programming Rules**: See `references/macrob-programming-rules.md` - **Essential M350 syntax rules and best practices**
 - **Advanced Macro Mathematics**: See `references/advanced-macro-mathematics.md` - **Formula library by Nikolay Zvyagintsev**
-- **V1.22 Verified Skillset**: See `references/DDCS_Expert___M350_Master_Skillset__Verified_V1_22_.pdf` - Complete verified patterns and reference values
-- **Current Fusion 360 Post**: See `references/DDCSE_Post-processor.cps` - Your working post-processor file (ready to use)
+- **V1.22 Verified Skillset**: See `references/DDCS_M350_Verified_Skillset_v1.22.pdf` - Complete verified patterns and reference values
+- **Current Fusion 360 Post**: See `references/Fusion360_DDCS_post-processor.cps` - Your working post-processor file (ready to use)
 - **Example macro files**: See `references/example-macros/` - 22 working .nc files including auto-squaring and thread milling
 - **Hardware configuration**: See `references/hardware-config.md` - Your Ultimate Bee 1010 setup details
 - **Virtual button automation**: See `references/virtual-buttons-2037.md` - Complete guide to #2037 programmable buttons
+- **Complete virtual button codes**: See `references/Virtual_button_function_codes_COMPLETE.xlsx` - All 201 KeyValue codes (axis commands, K-button triggers, file ops)
 - **Fusion 360 integration**: See `references/fusion-post-processor.md` - Complete post-processor guide with victory dance
 - **User-tested patterns**: See `references/user-tested-patterns.md` - Real macros from production dual-gantry machine
 - **Proven code patterns**: See `references/community-patterns.md` - Working macros from experienced users
@@ -726,8 +739,8 @@ For detailed information on specific topics:
 - **Official #2037 specification**: See `references/Virtual_button_function__2037_.pdf` - Official virtual button control documentation
 - **Variable priming bug**: See `references/variable-priming-card.md`
 - **Display and dialogs**: See `references/ddcs-display-methods.md` - Includes #2042 beep sound control
-- **Complete variable map**: See `references/Variables-ENG_01-04-2025.xlsx`
-- **G/M code reference**: See `references/G-M-code_full_list.xlsx`
+- **Complete variable map**: See `references/DDCS_Variables_mapping_2025-01-04.xlsx`
+- **G/M code reference**: See `references/DDCS_G-M-code_reference.xlsx`
 - **Parameter details**: See `references/eng` file
 - **Controller quirks**: See `references/CORE_TRUTH.md` - V1.22 VERIFIED
 
@@ -738,7 +751,7 @@ For detailed information on specific topics:
 4. user-tested-patterns.md - See tested solutions for your exact use case
 5. fusion-post-processor.md - If working with Fusion 360
 6. community-patterns.md - Additional proven approaches
-7. Variables-ENG_01-04-2025.xlsx - Look up specific addresses
+7. DDCS_Variables_mapping_2025-01-04.xlsx - Look up specific addresses
 8. Your reference files as needed for details
 
 **System Specifics**: This skill is tailored for an Ultimate Bee 1010 dual-gantry machine (700×700×100mm) with DDCS M350 controller, 2.2kW water-cooled spindle, floating + fixed probes, manual tool changing, and T-track workholding.

@@ -55,7 +55,7 @@ This document provides a complete map of all available user storage on the DDCS 
 
 **Location**: Persistent range between system variables  
 **Status**: Verified working (community-tested)  
-**Source**: Variables-ENG_01-04-2025.xlsx (unmarked "S" range)
+**Source**: DDCS_Variables_mapping_2025-01-04.xlsx (unmarked "S" range)
 
 | Variables | Status | Notes |
 |-----------|--------|-------|
@@ -78,7 +78,7 @@ This document provides a complete map of all available user storage on the DDCS 
 ### Range #2500-#2599 (100 Variables)
 
 **Location**: Large persistent block  
-**Status**: ✅ **VERIFIED PERSISTENT** - Confirmed in Variables-ENG_01-04-2025.xlsx (01-04-2025)  
+**Status**: ✅ **VERIFIED PERSISTENT** - Confirmed in DDCS_Variables_mapping_2025-01-04.xlsx (01-04-2025)  
 **Note**: Earlier XLSX versions incorrectly marked as "does not work" - updated file confirms status 'B' (persisted after reboot)
 
 | Variables | Status | Notes |
@@ -89,7 +89,7 @@ This document provides a complete map of all available user storage on the DDCS 
 - Available: 100 variables
 
 **Official confirmation:**
-- Variables-ENG_01-04-2025.xlsx (01-04-2025): Status 'B' = "persisted after reboot"
+- DDCS_Variables_mapping_2025-01-04.xlsx (01-04-2025): Status 'B' = "persisted after reboot"
 - User testing: Confirmed working
 - Production verified: Safe for use
 
@@ -123,8 +123,8 @@ This document provides a complete map of all available user storage on the DDCS 
 |-------|---------|
 | #0-#499 | Non-persistent user variables (reset on reboot) |
 | #500-#999 | Parameter mirrors (Pr# + 500 = #variable) |
-| #1000-#1152 | System variables (see Variables-ENG_01-04-2025.xlsx) |
-| #1194-#1509 | System variables (see Variables-ENG_01-04-2025.xlsx) |
+| #1000-#1152 | System variables (see DDCS_Variables_mapping_2025-01-04.xlsx) |
+| #1194-#1509 | System variables (see DDCS_Variables_mapping_2025-01-04.xlsx) |
 | #1510-#1513 | Display variables (for #1503/#1505 formatting) |
 | #2000-#2038 | System variables (function keys, etc.) |
 | #2037 | Virtual button control |
@@ -515,7 +515,7 @@ Legend:
 
 - **variable-priming-card.md** - Variable initialization requirements
 - **CORE_TRUTH.md** - Complete persistent storage rules
-- **Variables-ENG_01-04-2025.xlsx** - Official variable mapping
+- **DDCS_Variables_mapping_2025-01-04.xlsx** - Official variable mapping
 - **macrob-programming-rules.md** - MacroB syntax and best practices
 
 ---

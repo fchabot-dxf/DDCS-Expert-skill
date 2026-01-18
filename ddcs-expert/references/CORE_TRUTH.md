@@ -220,7 +220,7 @@ Pr500 (UI) = #1000 (macro variable)
 - Machine X = #880 (not Pr380)
 - Machine Y = #881 (not Pr381)
 
-**Always verify** in `Variables-ENG_01-04-2025.xlsx` - the Pr+500 rule is a guideline, not absolute.
+**Always verify** in `DDCS_Variables_mapping_2025-01-04.xlsx` - the Pr+500 rule is a guideline, not absolute.
 
 ---
 
@@ -366,7 +366,7 @@ These are the distances the axes back off from limit switches after homing.
 | Function Keys K1-K8 | #2072 - #2079 | 🟡 SYSTEM | Function key indicator addresses |
 | Available (LARGE) | #2500 - #2599 | 🟢 FREE | 100 variables, **VERIFIED PERSISTENT** (XLSX confirmed 'B' status) |
 
-**Note on #2500-#2599**: Earlier versions of Variables-ENG_01-04-2025.xlsx incorrectly marked this as "does not work". **Updated file (01-04-2025) confirms status 'B' (persisted after reboot)**. User testing and official documentation now aligned.
+**Note on #2500-#2599**: Earlier versions of DDCS_Variables_mapping_2025-01-04.xlsx incorrectly marked this as "does not work". **Updated file (01-04-2025) confirms status 'B' (persisted after reboot)**. User testing and official documentation now aligned.
 
 ### Persistence Rules (VERIFIED)
 
@@ -407,13 +407,13 @@ The DDCS M350 uses THREE different numbering schemes:
 ### The Critical Mapping
 
 ```
-eng file "#129" → Pr129 (UI) → #629 (macro) via Variables-ENG_01-04-2025.xlsx
+eng file "#129" → Pr129 (UI) → #629 (macro) via DDCS_Variables_mapping_2025-01-04.xlsx
 ```
 
 **NEVER assume** eng "#number" = macro "#number"
 
 Always use **BOTH** reference files:
-1. `Variables-ENG_01-04-2025.xlsx` - Find macro address
+1. `DDCS_Variables_mapping_2025-01-04.xlsx` - Find macro address
 2. `eng` - Understand parameter behavior
 
 ---
@@ -493,7 +493,7 @@ Enables line-by-line simulation for testing macros before running on machine.
 
 ## Investigation Process for ANY Variable
 
-**STEP 1**: Check `Variables-ENG_01-04-2025.xlsx`
+**STEP 1**: Check `DDCS_Variables_mapping_2025-01-04.xlsx`
 - Find the macro address
 - Check if it's a parameter (has Pr# column)
 - Check if it's read-only (R/O marking)
@@ -525,7 +525,7 @@ Enables line-by-line simulation for testing macros before running on machine.
 6. ✅ **Pr + 500 = macro address** - Usually (verify in XLSX)
 7. ✅ **Y and Z are NEGATIVE space** - Your machine coordinate system
 8. ✅ **#0-#499 NOT persistent** - Use #1153-#1193, #2039-#2071, or #2500-#2599 for storage
-9. ✅ **#2500-#2599 VERIFIED PERSISTENT** - Confirmed in Variables-ENG_01-04-2025.xlsx (01-04-2025) status 'B'
+9. ✅ **#2500-#2599 VERIFIED PERSISTENT** - Confirmed in DDCS_Variables_mapping_2025-01-04.xlsx (01-04-2025) status 'B'
 10. ✅ **WCS stride = 5** - Not 1, calculate with `805 + [index-1]*5`
 11. ✅ **Standard FANUC rules DON'T apply** - M350 is different!
 
@@ -550,7 +550,7 @@ Enables line-by-line simulation for testing macros before running on machine.
 ## Firmware Reference
 
 **Your actual controller firmware backup** (12-31-2025) is available in:
-- `firmware backup 31-12-2025/SystemBak_19700101000156/nand1-1/`
+- `firmware-backup-2025-12-31/SystemBak_19700101000156/nand1-1/`
 
 **Key files:**
 - `slib-g.nc` - System library with G-code subroutines
