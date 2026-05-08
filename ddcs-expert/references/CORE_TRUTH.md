@@ -1,571 +1,546 @@
-# DDCS M350 Expert Controller - Core Truth (V1.22 VERIFIED)
+# DDCS M350 Expert Controller - Core Truths Quick Reference
 
-**CRITICAL: Read this FIRST before writing any macro code**
-
-**Last Updated**: January 2026  
 **Version**: V1.22 Verified  
-**Source**: Production-tested Ultimate Bee 1010 + Community verification
+**Authority**: [CONFIRMED] Production-tested  
+**Last Updated**: January 2026
+
+**Purpose**: Essential firmware quirks - READ FIRST before any macro work
+
+**Complete details**: See full version (571 lines) or `software-technical-spec.md`
 
 ---
 
-## ⚠️ CRITICAL "CORE TRUTHS" - Standard FANUC Rules DO NOT Apply
+## The 8 Critical Truths [CONFIRMED]
 
-### 1. G10 is BROKEN - Use Direct Parameter Writing
+**Standard FANUC rules DO NOT apply**
 
-**Problem**: `G10 L2 P1 X0 Y0 Z0` causes unwanted motion or unpredictable behavior
+| # | Truth | Workaround | Reference |
+|---|-------|------------|-----------|
+| 1 | **G10 is BROKEN** | Use direct #805+ writes | software-technical-spec.md §3.2 |
+| 2 | **G53 requires variables** | No hardcoded constants | software-technical-spec.md §3.3 |
+| 3 | **G28 ≠ machine zero** | Goes to back-off positions | software-technical-spec.md §3.3 |
+| 4 | **Variable priming required** | Prime #1153+ from #880+ | variable-priming-card.md |
+| 5 | **C-style operators only** | Use ==, !=, <, > (NOT EQ) | software-technical-spec.md §3.4 |
+| 6 | **WCS stride = 5** | Not 20 (G54=#805, G55=#810) | software-technical-spec.md §3.5 |
+| 7 | **IF/GOTO syntax strict** | No brackets, no spaces | conditional-syntax-card.md |
+| 8 | **#2070 range limited** | Only writes to #50-#499 | input-dialog-patterns.md |
 
-**WHY**: G10 WCS offset writing is not implemented correctly in M350 firmware
+---
 
-**✅ SOLUTION - Direct Parameter Writing:**
+## 1. G10 is BROKEN
+
+### Problem
+
 ```gcode
-; WRONG - Do not use G10
-G10 L2 P1 X0 Y0 Z0  ; BROKEN!
-
-; CORRECT - Write directly to WCS offset variables
-#805 = #880  ; Set G54 X offset to current machine X
-#806 = #881  ; Set G54 Y offset to current machine Y
-#807 = #882  ; Set G54 Z offset to current machine Z
+G10 L2 P1 X0 Y0 Z0   ; ❌ Causes unwanted motion
 ```
 
-**For any WCS (G54-G59):**
-```gcode
-; Universal pattern for active WCS
-#100 = #578               ; Get active WCS index (1-6)
-#101 = 805 + [#100-1]*5   ; Calculate X offset address
-#102 = 806 + [#100-1]*5   ; Calculate Y offset address
-#103 = 807 + [#100-1]*5   ; Calculate Z offset address
+### Solution
 
-#[#101] = #880            ; Set X offset
-#[#102] = #881            ; Set Y offset
-#[#103] = #882            ; Set Z offset
+**Direct parameter writing**:
+```gcode
+; Set G54 offsets
+#805 = #880   ; G54 X offset
+#806 = #881   ; G54 Y offset
+#807 = #882   ; G54 Z offset
+```
+
+**Universal pattern** (any WCS):
+```gcode
+#wcs = #578                    ; Get active WCS (1-6)
+#base = 805 + [#wcs - 1] * 5  ; Calculate base address
+#[#base + 0] = #880           ; Set X
+#[#base + 1] = #881           ; Set Y
+#[#base + 2] = #882           ; Set Z
+```
+
+**WCS address table**:
+
+| WCS | Index | X | Y | Z | A | B |
+|-----|-------|---|---|---|---|---|
+| G54 | 1 | 805 | 806 | 807 | 808 | 809 |
+| G55 | 2 | 810 | 811 | 812 | 813 | 814 |
+| G56 | 3 | 815 | 816 | 817 | 818 | 819 |
+| G57 | 4 | 820 | 821 | 822 | 823 | 824 |
+| G58 | 5 | 825 | 826 | 827 | 828 | 829 |
+| G59 | 6 | 830 | 831 | 832 | 833 | 834 |
+
+**Formula**: `Base + (WCS_Index - 1) × 5`
+
+---
+
+## 2. G53 Syntax Rules
+
+### ✅ VALID (VERIFIED)
+
+```gcode
+; Method 1: Variables only
+#x = 500
+#y = -500
+G53 X#x Y#y   ; ✅ Works
+
+; Method 2: Expressions in brackets
+G53 X[#100] Y[#101]   ; ✅ Works
+
+; Method 3: Calculated on separate line
+#target = 500 + 100
+G53 X#target   ; ✅ Works
+```
+
+### ❌ INVALID (BROKEN)
+
+```gcode
+; Hardcoded constants — G53 Z5, G53 X0, etc. all fail
+G53 X0 Y0 Z0   ; ❌ FAILS
+G53 Z5         ; ❌ FAILS
+
+; G0/G1 on same line
+G53 G0 X#var   ; ❌ FAILS
+G53 G1 X#var F500   ; ❌ FAILS
+
+; Expressions without brackets
+G53 X#100+50   ; ❌ FAILS
+```
+
+### Rule of thumb
+
+The operand must contain at least one variable. Pure constants are rejected; once a variable is involved, you can add constants to it.
+
+```gcode
+G53 Z5             ; ❌ bare constant
+G53 Z#z            ; ✅ variable
+G53 Z[#10+5]       ; ✅ expression with variable
+G53 Z[#10]+5       ; ✅ expression result + constant (factory pattern)
+```
+
+Evidence: the controller's own factory code (`firmware-backup-2025-12-31/.../slib-g.nc`) uses variables for every G53 call across ~30+ usages — never bare constants. Confirmed across user macros and factory code.
+
+### Correct Pattern
+
+```gcode
+; ALWAYS use this pattern
+#x = 0
+#y = 0
+#z = 0
+G53 X#x Y#y Z#z   ; Move to machine zero
 ```
 
 ---
 
-### 2. G53 Syntax Rules (VERIFIED V1.22)
+## 3. G28 Reference Point Behavior
 
-**CRITICAL**: G53 machine coordinate system moves have STRICT requirements.
+### What G28 Actually Does
 
-#### ✅ VALID Syntax (VERIFIED WORKING)
+**G28 does NOT go to machine zero!**
 
-**Method 1: G53 with Variables Only**
+**G28 goes to "back-off" positions**:
+- Set by parameters Pr122-Pr126 (#622-#626)
+- Ultimate Bee 1010: X=5.0, Y=-5.0, Z=-5.0
+- This is **5mm away** from limit switches
+
+### Machine Zero vs G28
+
+| Command | Destination | Ultimate Bee 1010 |
+|---------|-------------|-------------------|
+| **G53 X0 Y0 Z0** | True machine zero | X=0, Y=0, Z=0 |
+| **G28 X0 Y0 Z0** | Back-off positions | X=5.0, Y=-5.0, Z=-5.0 |
+
+### Solution
+
+**Use G53 for machine zero**:
 ```gcode
-#100 = 500    ; Target machine X (positive space)
-#101 = -500   ; Target machine Y (NEGATIVE space)
-G53 X[#100] Y[#101]  ; MUST use variables, NO G0/G1 on same line
+; Go to true machine zero
+#x = 0
+#y = 0
+#z = 0
+G53 X#x Y#y Z#z
 ```
 
-**Method 2: G53 with Variable References**
+**If you need back-off positions**:
 ```gcode
-G53 X#100 Y#101  ; Direct variable reference also works
+; Read back-off parameters
+#x_backoff = #622
+#y_backoff = #623
+#z_backoff = #624
+G53 X#x_backoff Y#y_backoff Z#z_backoff
 ```
-
-**Key Rules:**
-- ✅ MUST use variables (cannot use hardcoded constants)
-- ✅ NO G0 or G1 on the same line as G53
-- ✅ Variables only - expressions like `X[#100]` or `X#100`
-
-#### ❌ INVALID Syntax (WILL FAIL)
-
-```gcode
-; WRONG - Combining G53 with G0/G1
-G53 G0 X500 Y-500       ; WILL FAIL - no G0/G1 allowed
-G0 G53 X#100 Y#101      ; WILL FAIL - order doesn't matter
-
-; WRONG - Using hardcoded constants
-G53 X500 Y-500          ; UNRELIABLE - may use WCS instead of machine coords
-G53 X0 Y0               ; UNRELIABLE - avoid constants
-
-; WRONG - Modal combination attempts
-G53 G0                  ; Then later: X500 Y-500  ; WILL FAIL
-```
-
-#### 🛡️ FAILSAFE Method (ALWAYS WORKS)
-
-**Incremental Delta Moves** - Use when unsure:
-```gcode
-; Calculate delta from current position to target
-#100 = 500 - #880    ; Delta X (target - current machine X)
-#101 = -500 - #881   ; Delta Y (target - current machine Y)
-
-G91                  ; Switch to incremental mode
-G0 X[#100] Y[#101]   ; Move by calculated delta
-G90                  ; Return to absolute mode
-```
-
-**When to use each method:**
-- **G53 with variables**: Clean, direct - use for production code
-- **Incremental delta**: Guaranteed failsafe - use when debugging or unsure
 
 ---
 
-### 3. G28 Reference Point Behavior
+## 4. Variable Priming Bug [CRITICAL]
 
-**Understanding G28 on M350**: G28 moves to the back-off position from limit switches, NOT machine zero.
+### The Bug
 
-**How G28 works on DDCS M350:**
-- G28 moves axes to their **home switch back-off positions**
-- Back-off distances set in Parameters Pr122-124 (variables #622-#624)
-- This is NOT the same as machine coordinate zero
-- This is the safe position after homing completes
+**Direct assignment from system vars to persistent vars causes freeze**:
 
-**Your Ultimate Bee 1010 G28 positions:**
 ```gcode
-G28 X0 Y0 Z0  ; Moves to back-off positions:
-              ; X = 5.0mm (from limit switch)
-              ; Y = -5.0mm (from limit switch)
-              ; Z = -5.0mm (from limit switch)
+#1153 = #880   ; ❌ CONTROLLER FREEZE
 ```
 
-**Where these values come from:**
+### Why It Happens
+
+Firmware bug when assigning:
+- **FROM**: System variables (#880+)
+- **TO**: Persistent variables (#1153-#5999)
+
+### Solution: Prime First
+
 ```gcode
-#622  ; Pr122 = X Back Home = 5.0mm
-#623  ; Pr123 = Y Back Home = -5.0mm  
-#624  ; Pr124 = Z Back Home = -5.0mm
+; Method 1: Prime through local variable
+#100 = #880    ; ✅ Prime in local var
+#1153 = #100   ; ✅ Now safe
+
+; Method 2: Arithmetic "wash"
+#1153 = #880 + 0   ; ✅ Addition prevents freeze
+
+; Method 3: Use intermediate calculation
+#1153 = #880 * 1   ; ✅ Multiplication works too
 ```
 
-**Important distinctions:**
-- **G28** = Move to home back-off position (Pr122-124)
-- **G53 X0 Y0 Z0** = Move to machine coordinate zero (true machine origin)
-- **G54 X0 Y0 Z0** = Move to WCS zero (work coordinate zero)
+### What Needs Priming
 
-**When to use G28:**
-```gcode
-; Safe parking after job (near home switches)
-G28 X0 Y0 Z0  ; Go to home back-off position
+**Safe (no priming needed)**:
+- Local variables (#1-#999)
+- System parameters (#500-#999)
+- WCS offsets (#805-#834)
 
-; This is DIFFERENT from saved positions
-G53 X#1153 Y#1154  ; Go to saved machine coordinate
-```
+**Requires priming**:
+- Persistent storage (#1153-#5999)
 
-**G28 syntax on M350:**
-```gcode
-; Standard G28 usage
-G91 G28 X0 Y0 Z0  ; Incremental mode, move to home back-off
-G90               ; Return to absolute mode
-
-; Or direct G28 (works on M350)
-G28 X0 Y0 Z0      ; Move to home back-off positions
-```
-
-**Why this matters:**
-- G28 is useful for safe parking near home switches
-- But it's NOT the same as your custom park positions (#1153-#1154)
-- And it's NOT machine zero (G53 X0 Y0 Z0)
-- It's the comfortable back-off distance from switches set in Pr122-124
+**See**: `variable-priming-card.md` for complete patterns
 
 ---
 
-### 4. Variable Priming Bug (CRITICAL)
+## 5. C-Style Operators Only
 
-**Problem**: Assigning system variables to uninitialized user variables causes controller freeze
+### ❌ FANUC Style (UNRELIABLE)
 
-**SYMPTOM**: Controller hangs when executing lines like `#100 = #880` if #100 hasn't been initialized
-
-**✅ SOLUTION - Always Prime Variables:**
 ```gcode
-; WRONG - Uninitialized variable
-#100 = #880  ; May cause freeze!
-
-; CORRECT - Prime first, then assign
-#100 = 0     ; Initialize with any constant
-#100 = #880  ; Now safe to assign system variable
+IF #100 EQ 5 GOTO100   ; ❌ Unreliable
+IF #100 NE 0 GOTO200   ; ❌ Unreliable
+IF #100 LT 10 GOTO300  ; ❌ Unreliable
+IF #100 GT 5 GOTO400   ; ❌ Unreliable
+IF #100 LE 10 GOTO500  ; ❌ Unreliable
+IF #100 GE 5 GOTO600   ; ❌ Unreliable
 ```
 
-**Priming value doesn't matter** (can be 0, 1, or any number):
+### ✅ C-Style (REQUIRED)
+
 ```gcode
-#100 = 1     ; This works too
-#100 = #880  ; Safe
+IF #100 == 5 GOTO100   ; ✅ Reliable
+IF #100 != 0 GOTO200   ; ✅ Reliable
+IF #100 < 10 GOTO300   ; ✅ Reliable
+IF #100 > 5 GOTO400    ; ✅ Reliable
+IF #100 <= 10 GOTO500  ; ✅ Reliable
+IF #100 >= 5 GOTO600   ; ✅ Reliable
 ```
 
-**Community observation**: Freeze mainly happens with persistent storage (#1153+). Local variables (#0-#499) may work without priming in practice, but always prime for safety.
+**Community data**: 99% of production macros use C-style exclusively
 
 ---
 
-### 5. Display Formatting Rules
+## 6. WCS Stride = 5 (Not 20)
 
-**Problem**: Format codes need square brackets in #1505 messages
+### Standard FANUC
 
-**✅ CORRECT - Square Brackets:**
-```gcode
-#1510 = #880
-#1511 = #881
-#1505 = -5000(Position: X=[%.3f] Y=[%.3f])  ; Square brackets required
+```
+Stride = 20
+G54 = Base + 0×20
+G55 = Base + 1×20
 ```
 
-**❌ WRONG - Regular Parentheses:**
-```gcode
-#1505 = -5000(Position: X=(%.3f) Y=(%.3f))  ; Won't format
+### DDCS M350
+
+```
+Stride = 5 (Non-standard!)
+G54 = 805 + 0×5 = 805
+G55 = 805 + 1×5 = 810
+G56 = 805 + 2×5 = 815
 ```
 
-**Available format codes:**
-- `[%.0f]` - Integer (no decimals)
-- `[%.1f]` - 1 decimal place
-- `[%.2f]` - 2 decimal places
-- `[%.3f]` - 3 decimal places (precision work)
+### Address Calculation
+
+```gcode
+; Calculate WCS address
+#wcs_index = 2   ; G55
+#axis_offset = 0 ; 0=X, 1=Y, 2=Z, 3=A, 4=B
+
+#address = 805 + [#wcs_index - 1] * 5 + #axis_offset
+; G55 Y = 805 + (2-1)*5 + 1 = 811
+```
 
 ---
 
-### 6. Parameter Mapping Rule
+## 7. Conditional Syntax Rules [CONFIRMED]
 
-**Critical Rule**: "Pr" numbers in UI usually map to `#Pr+500`
+> **⚠️ Evidence note (cross-checked against .nc macros, 2026-05-07):** The "no brackets on simple conditions" rule below is **not supported by production macro evidence**. Across all 26 user macros AND the controller's factory firmware (`firmware-backup-2025-12-31/.../slib-g.nc`), **100% of IF statements use brackets** — `IF [#80==1]*[#60==2] GOTO202`, `IF [#71!=0]*[#116<=1] GOTO116`, etc. Zero macros use the bare `IF #var==5 GOTO1` form. The bare form may work (the user reports observing it), but it is not how working code is written. The bracketed form is the safer default.
+>
+> Also missing from this section but used everywhere in macros: `+` between bracketed conditions = logical **OR**, `*` = logical **AND**. Example: `IF [#a==1]+[#b==1] GOTO5` jumps if either is true.
 
-```
-Pr1 (UI) = #501 (macro variable)
-Pr129 (UI) = #629 (macro variable)
-Pr500 (UI) = #1000 (macro variable)
-```
+### IF Statement Brackets
 
-**EXCEPTION**: System variables like machine coordinates don't follow this rule:
-- Machine X = #880 (not Pr380)
-- Machine Y = #881 (not Pr381)
-
-**Always verify** in `DDCS_Variables_mapping_2025-01-04.xlsx` - the Pr+500 rule is a guideline, not absolute.
-
----
-
-## Machine Coordinate System (VERIFIED)
-
-### Machine Coordinate Spaces
-
-**Your Ultimate Bee 1010 Configuration:**
-
-| Axis | Direction | Range | Notes |
-|------|-----------|-------|-------|
-| X | POSITIVE | 0 to +Max (~750mm) | Normal positive space |
-| Y | NEGATIVE | 0 to -Max (~-750mm) | **Travels in negative direction** |
-| Z | NEGATIVE | 0 to -Max (~-100mm) | **Table drops = negative Z** |
-| A | NEGATIVE | Follows Y | Dual-gantry slave axis |
-
-**Read machine coordinates:**
+**WRONG - Simple conditions with brackets**:
 ```gcode
-#880  ; Current X machine position (0 to +max)
-#881  ; Current Y machine position (0 to -max, NEGATIVE)
-#882  ; Current Z machine position (0 to -max, NEGATIVE)
-#883  ; Current A machine position (synced with Y)
+IF [#1922!=2] GOTO990      // ❌ Parser error
+IF[#1922!=2]GOTO990        // ❌ Syntax error
+IF [#1922 != 2] GOTO 990   // ❌ Multiple errors
 ```
 
-**Critical understanding:**
-- X increases as gantry moves right
-- Y increases (becomes less negative) as gantry moves forward
-- Z increases (becomes less negative) as table rises
-
----
-
-## Work Coordinate Offset Map (Stride = 5)
-
-**VERIFIED**: WCS offsets use stride of 5 between coordinate systems
-
-| WCS | Index (#578) | X Offset | Y Offset | Z Offset | A Offset |
-|-----|--------------|----------|----------|----------|----------|
-| G54 | 1 | #805 | #806 | #807 | #808 |
-| G55 | 2 | #810 | #811 | #812 | #813 |
-| G56 | 3 | #815 | #816 | #817 | #818 |
-| G57 | 4 | #820 | #821 | #822 | #823 |
-| G58 | 5 | #825 | #826 | #827 | #828 |
-| G59 | 6 | #830 | #831 | #832 | #833 |
-
-**To set WCS zero**, write machine coordinate to offset variable:
+**CORRECT - No brackets on simple conditions** *(claimed; not seen in any production macro)*:
 ```gcode
-#805 = #880  ; Set G54 X zero at current machine position
+IF #1922!=2 GOTO1          // ✅ Works (per user testing)
+IF #1921==1 GOTO2          // ✅ Works (per user testing)
+IF #100>50 GOTO9           // ✅ Works (per user testing)
 ```
 
-**Calculate offset for active WCS:**
+**Use brackets for complex expressions** *(this is what every working macro actually does, even for "simple" comparisons)*:
 ```gcode
-#100 = #578               ; Get active WCS (1-6)
-#101 = 805 + [#100-1]*5   ; Calculate X offset address
-#[#101] = #880            ; Set X zero for active WCS
+IF [#14==5]+[#14==4] GOTO10   // ✅ Compound: + = logical OR
+IF [#80==1]*[#60==2] GOTO202  // ✅ Compound: * = logical AND
+IF [#100+#200]>50 GOTO2       // ✅ Arithmetic
+IF [#var==5] GOTO1            // ✅ Single bracketed condition (matches macro style)
 ```
 
-**Important**: Write the MACHINE coordinate value, not zero!
-- WCS offset = Current machine position
-- Work coordinate will display as 0.000 after setting
+### GOTO Spacing
 
----
-
-## Your Machine-Specific Reference Values
-
-### G54 Fence System (Your Ultimate Bee 1010)
-
-**These are YOUR verified machine reference values** - use to restore G54 if accidentally lost:
-
-| Reference | Axis | Machine Coordinate | Purpose |
-|-----------|------|-------------------|---------|
-| G54 Fence | X | 42.650 | Reference X zero position |
-| G54 Fence | Y | -661.186 | Reference Y zero position |
-| Spoilboard | Z | -87.336 | Z zero surface height |
-
-**Restore G54 macro:**
+**WRONG - Space before label**:
 ```gcode
-(RESTORE G54 FENCE DEFAULTS - Ultimate Bee 1010 Specific)
-#805 = 0
-#806 = 0  
-#807 = 0
+IF #1922!=2 GOTO 990       // ❌ Parser error
+GOTO 999                   // ❌ Label not found
+```
 
-#805 = 42.650     ; Restore X fence
-#806 = -661.186   ; Restore Y fence  
-#807 = -87.336    ; Restore Z spoilboard
+**CORRECT - No space**:
+```gcode
+IF #1922!=2 GOTO1          // ✅ Works
+GOTO2                      // ✅ Works
+GOTO999                    // ✅ Works
+```
 
-#1505 = -5000(G54 Fence Restored!)
+### Label Number Reliability
+
+> **⚠️ Evidence note (2026-05-07):** The "single digit most reliable" claim is **contradicted by working macros**. Production code routinely uses 2- and 3-digit labels: `GOTO51`, `GOTO107`, `GOTO111`, `GOTO202`, `GOTO401`, `GOTO711` ([macro_DA_without_relay_advanced.nc](example-macros/macro_DA_without_relay_advanced.nc), [macro_Thread_milling.nc](example-macros/macro_Thread_milling.nc)). Multi-digit labels work fine. If parser errors were observed, the cause was likely something else (space before label, or a different syntax issue) rather than the digit count.
+
+**Most reliable (use these)**:
+```gcode
+N1, N2, N9                 // ✅ Single digit - best
+N10, N99                   // ✅ Double digit - good
+```
+
+**Less reliable (use caution)**:
+```gcode
+N100, N990, N999           // ⚠️ Claimed unreliable; macros use these without issue
+```
+
+### Program Flow Pattern
+
+**WRONG - Falls through into error handler**:
+```gcode
+; Main code
+#1505=-5000(Success!)
+M30                        // ❌ Program ends, but then...
+
+; Error handler
+N1
+#1505=1(Error!)            // ❌ This executes even after success!
 M30
 ```
 
-**When to use**: If you accidentally overwrite G54 and lose your fence reference.
+**CORRECT - GOTO skips error handlers**:
+```gcode
+; Main code
+#1505=-5000(Success!)
+GOTO2                      // ✅ Jump to end label
 
-### Back-Off from Home Positions
+; Error handler
+N1
+#1505=1(Error!)
 
-**Your machine's verified back-off distances** (Pr122-124):
+; Program end
+N2
+M30
+```
+
+**Rule**: Success path must GOTO end label to skip error handlers
+
+**See**: `conditional-syntax-card.md` for quick reference
+
+---
+
+## 8. Input Dialog Range Limit [CONFIRMED]
+
+### The #2070 Bug
+
+**#2070 input dialog can ONLY write to #50-#499 range**
+
+**WRONG - Direct write to persistent**:
+```gcode
+#2070=1175(Enter probe speed...)  // ❌ Silent failure
+; User types 400
+; #1175 ends up with wrong value (1 or 50 or garbage)
+```
+
+**CORRECT - Two-step pattern**:
+```gcode
+; Step 1: Input to temporary variable
+#2070=105(Enter probe speed...)   // ✅ #105 is in safe range
+; Step 2: Copy to persistent storage
+#1175=#105                        // ✅ Now #1175 has correct value
+```
+
+### What Works
+
+**✅ Safe ranges for #2070**:
+- #50-#499 (temporary variables)
+
+**❌ Unsafe ranges (silent failures)**:
+- #1153-#1193 (persistent storage)
+- #2039-#2071 (persistent storage)
+- #2500-#2599 (persistent storage)
+- #500-#999 (parameter mirrors - don't use for storage anyway)
+
+### Complete Example
 
 ```gcode
-#622  ; X Back Home = 5.0mm (POSITIVE space)
-#623  ; Y Back Home = -5.0mm (NEGATIVE space)
-#624  ; Z Back Home = -5.0mm (NEGATIVE space)
-```
+; Probe configuration macro
+; CORRECT version using two-step pattern
 
-These are the distances the axes back off from limit switches after homing.
+; Input to temporary variables
+#2070=100(Enter probe radius in mm - default is 2)
+#2070=101(Enter max probe distance in mm - default is 50)
+#2070=102(Enter fast speed mm/min - default is 400)
 
----
-
-## Common System Parameters (Read/Write)
-
-**VERIFIED**: Macro Variable = UI Parameter + 500
-
-| Parameter (UI) | Macro Variable | Description | Your Machine Value |
-|----------------|----------------|-------------|-------------------|
-| Pr 0 | #500 | Start Speed | Min speed before accel |
-| Pr 61 | #561 | Default Feed | Used if F missing |
-| Pr 70 | #570 | Z Lift Distance | Retract on Pause/Stop |
-| Pr 82 | #582 | Max Spindle RPM | 24,000 RPM limit |
-| Pr 91 | #591 | Z Lift Enable | 0=No, 1=Lift on Pause |
-| Pr 122 | #622 | X Back Home | 5.0mm (positive) |
-| Pr 123 | #623 | Y Back Home | -5.0mm (negative) |
-| Pr 124 | #624 | Z Back Home | -5.0mm (negative) |
-| Pr 129 | #629 | Probe Thickness | Touch plate thickness (mm) |
-| Pr 130 | #630 | Fixed Sensor Enable | 0=Disable, 1=Enable |
-| Pr 132 | #632 | Probe Speed | Initial G31 feedrate |
-| Pr 135 | #635 | Fixed Probe X | Machine X for sensor |
-| Pr 136 | #636 | Fixed Probe Y | Machine Y for sensor |
-| Pr 269 | #769 | Debug Message | Set to 1 for #1503 text |
-| - | #578 | WCS Index | Active WCS (1=G54, 2=G55...) |
-
----
-
-## User Storage Map (VERIFIED PERSISTENT)
-
-**Your allocated persistent storage** - do not overwrite, use Available slots:
-
-| Function | Variables | Status | Macro |
-|----------|-----------|--------|-------|
-| Safe Park Position | #1153 (X), #1154 (Y) | ✅ IN USE | SAVE_safe_park_position.nc |
-| Tool Change Position | #1155 (X), #1156 (Y) | ✅ IN USE | SAVE_tool_change_position.nc |
-| Available | #1157 - #1169 | 🟢 FREE | Available for expansion |
-| Probe Config | #1170 - #1175 | 🟡 RESERVED | Reserved for probe settings |
-| Available | #1176 - #1193 | 🟢 FREE | Available for use |
-| G-code Temp Variables | #2038 | 🟡 SYSTEM | "Self-define G code Temporary variables" |
-| Available (Medium) | #2039 - #2071 | 🟢 FREE | 33 variables, persistent |
-| Function Keys K1-K8 | #2072 - #2079 | 🟡 SYSTEM | Function key indicator addresses |
-| Available (LARGE) | #2500 - #2599 | 🟢 FREE | 100 variables, **VERIFIED PERSISTENT** (XLSX confirmed 'B' status) |
-
-**Note on #2500-#2599**: Earlier versions of DDCS_Variables_mapping_2025-01-04.xlsx incorrectly marked this as "does not work". **Updated file (01-04-2025) confirms status 'B' (persisted after reboot)**. User testing and official documentation now aligned.
-
-### Persistence Rules (VERIFIED)
-
-**NON-PERSISTENT (Resets on reboot):**
-- `#0 - #499` - User variables, temporary storage only
-
-**PERSISTENT (Survives reboot):**
-- `#1153 - #1193` - Gap in system variables, verified safe (41 variables)
-- `#2039 - #2071` - Persistent range, verified working (33 variables)
-- `#2500 - #2599` - Large persistent block, **user-verified working** (100 variables)
-
-**Total available persistent storage: 174 variables!**
-
-**DO NOT use #0-#499 for storage** - will reset to 0.000 on power cycle!
-
----
-
-## The Three Numbering Systems
-
-The DDCS M350 uses THREE different numbering schemes:
-
-### 1. ENG File Format (Parameter Numbers)
-- Format: `#0`, `#1`, `#129`, `#880`
-- This is the **Parameter Number (Pr#)**
-- Found in eng file from controller
-- **NOT the macro address!**
-
-### 2. Controller UI Display
-- Format: `Pr0`, `Pr1`, `Pr129`
-- Same as eng file number
-- What you see in parameter interface
-
-### 3. Macro/G-Code Address (What You Actually Write)
-- Format: `#500`, `#629`, `#880`
-- Memory address in variable space
-- **This goes in your .nc files**
-
-### The Critical Mapping
-
-```
-eng file "#129" → Pr129 (UI) → #629 (macro) via DDCS_Variables_mapping_2025-01-04.xlsx
-```
-
-**NEVER assume** eng "#number" = macro "#number"
-
-Always use **BOTH** reference files:
-1. `DDCS_Variables_mapping_2025-01-04.xlsx` - Find macro address
-2. `eng` - Understand parameter behavior
-
----
-
-## Standard Macro Template (V1.22)
-
-```gcode
-%
-(Title: <Macro Name>)
-(Description: <Function>)
-
-(--- PRIMING BLOCK ---)
-#100 = 0
-#101 = 0
-#102 = 0
-#1153 = 0  ; If using persistent storage
-
-(--- STATE SAVE ---)
-#100 = #4003  ; Save G90/G91 state
-
-(--- MAIN LOGIC ---)
-M5    ; Stop spindle for safety
-G90   ; Absolute mode
-
-; [INSERT LOGIC HERE]
-
-(--- STATE RESTORE ---)
-G#100  ; Restore G90/G91 state
+; Copy to persistent storage
+#1170=#100    // Probe radius
+#1171=#101    // Max distance
+#1175=#102    // Fast speed
 
 M30
-%
+```
+
+**See**: `input-dialog-patterns.md` for all patterns
+
+---
+
+## Quick Command Reference
+
+### Set Work Offset (Replace G10)
+
+```gcode
+; Set current position as G54 X0 Y0 Z0
+#805 = #880
+#806 = #881
+#807 = #882
+```
+
+### Go to Machine Zero (Replace G28)
+
+```gcode
+#x = 0
+#y = 0
+#z = 0
+G53 X#x Y#y Z#z
+```
+
+### Safe Persistent Variable Assignment
+
+```gcode
+; ALWAYS prime when assigning from #880+
+#100 = #880
+#1153 = #100
+```
+
+### Reliable Comparisons
+
+```gcode
+; Use C-style operators
+IF #value == 100 GOTO1000
+IF #count != 0 GOTO2000
+IF #position < 50 GOTO3000
 ```
 
 ---
 
----
+## Coordinate System Summary (Ultimate Bee 1010)
 
-## Parameter Access & Passwords
+### Machine Coordinates (G53)
 
-### Default Access Passwords
+**True machine zero**:
+- X=0, Y=0, Z=0 (at limit switches)
 
-**Use with EXTREME caution** - changing parameters can damage your machine!
+**Axis orientations**:
+- X: 0 to +1000mm (positive)
+- Y: 0 to **-735mm** (NEGATIVE)
+- Z: 0 to **-150mm** (NEGATIVE)
 
-| Access Level | Password | Capabilities |
-|-------------|----------|--------------|
-| Operator | 666666 | Basic parameter viewing and simple adjustments |
-| Admin | 777777 | Advanced parameter modifications |
-| Super Admin | 888888 | **ALL parameters** - can damage machine! |
+### G28 Back-Off Positions
 
-**⚠️ CRITICAL**: Always backup parameters to USB before making ANY changes!
+**NOT machine zero!**
+- X: +5.0mm (5mm from switch)
+- Y: -5.0mm (5mm from switch)
+- Z: -5.0mm (5mm from switch)
 
-### Critical Parameter for Macros
+### Work Coordinates (G54-G59)
 
-**Pr76 (#0076) - Macro Enable**
-```
-Menu → Parameters → Pr76
-Set to: OPEN
-```
-
-**Without this setting, NO macros will execute!** This is the first thing to check if macros aren't running.
-
-### Simulation Parameter
-
-**Pr245 (#0245) - Simulation Mode**
-```
-Set to: "line"
-```
-
-Enables line-by-line simulation for testing macros before running on machine.
-
-**Other modes:**
-- `3D` - 3D graphical simulation
-- `Statue` - Static view
-- May affect whether simulation runs
+**User-defined offsets**:
+- Set via direct #805+ writes
+- G10 is broken, don't use it
+- 6 systems available (G54-G59)
 
 ---
 
-## Investigation Process for ANY Variable
+## Three Numbering Systems
 
-**STEP 1**: Check `DDCS_Variables_mapping_2025-01-04.xlsx`
-- Find the macro address
-- Check if it's a parameter (has Pr# column)
-- Check if it's read-only (R/O marking)
+**Critical understanding**:
 
-**STEP 2**: Check `eng` file
-- Find parameter behavior
-- Menu location (`-m` flag)
-- Read/write permissions (`-p` flag)
-- Min/max ranges
+| System | Example | Where Used |
+|--------|---------|------------|
+| ENG File | #0, #129, #880 | .eng backup files |
+| UI Display | Pr0, Pr129, Pr500 | Controller screen |
+| Macro Address | #500, #629, #880 | **What you write** |
 
-**STEP 3**: Cross-reference
-- XLSX = WHAT the macro address is
-- eng = HOW the parameter behaves
+**Common pattern**: Pr[N] → #[N+500]
 
-**STEP 4**: Test safely
-- Prime variable first
-- Test on scrap material
-- Verify result with READ_VAR.nc
+**Example**: Pr129 (probe thickness) → #629 in code
 
 ---
 
-## Critical Reminders
+## Related Documentation
 
-1. ✅ **G10 is BROKEN** - Use direct parameter writing
-2. ✅ **G53 requires variables** - No constants, no G0/G1 on same line
-3. ✅ **G28 goes to back-off positions** - Uses Pr122-124 (#622-#624), not machine zero
-4. ✅ **Always prime variables** - Prevents freeze bug
-5. ✅ **Format codes need square brackets** - `[%.3f]` not `(%.3f)`
-6. ✅ **Pr + 500 = macro address** - Usually (verify in XLSX)
-7. ✅ **Y and Z are NEGATIVE space** - Your machine coordinate system
-8. ✅ **#0-#499 NOT persistent** - Use #1153-#1193, #2039-#2071, or #2500-#2599 for storage
-9. ✅ **#2500-#2599 VERIFIED PERSISTENT** - Confirmed in DDCS_Variables_mapping_2025-01-04.xlsx (01-04-2025) status 'B'
-10. ✅ **WCS stride = 5** - Not 1, calculate with `805 + [index-1]*5`
-11. ✅ **Standard FANUC rules DON'T apply** - M350 is different!
+**For complete explanations**:
+- `software-technical-spec.md` - Complete firmware quirks with examples
+- `variable-priming-card.md` - All priming patterns
+- `macrob-programming-rules.md` - MacroB syntax reference
+- `system-control-variables.md` - Variable address map
 
-**Available persistent storage:**
-- `#1153-#1193` (41 variables) - Verified safe gap
-- `#2039-#2071` (33 variables) - Verified working range
-- `#2500-#2599` (100 variables) - User-verified working (XLSX marking incorrect)
-- **Total: 174 persistent variables available**
-
-**Important position distinctions:**
-- `G28 X0 Y0 Z0` → Home back-off positions (X=5.0, Y=-5.0, Z=-5.0 from switches)
-- `G53 X0 Y0 Z0` → True machine coordinate zero
-- `G53 X#1153 Y#1154` → Your saved custom park positions
-- `G54 X0 Y0 Z0` → WCS zero (work coordinate system)
+**For working examples**:
+- `example-macros/` - 25 production-tested macros
+- `community-patterns-1-core.md` - Proven patterns
+- `user-tested-patterns.md` - Ultimate Bee 1010 patterns
 
 ---
 
-**Remember**: When standard FANUC code doesn't work, there's usually a DDCS-specific workaround in this document. Read before coding, test on scrap, verify results!
+## Quick Validation Checklist
+
+**Before running any macro**:
+
+- [ ] No G10 commands (use #805+ instead) — *✅ confirmed: 0 G10 in 26 macros*
+- [ ] G53 uses variables only (no hardcoded constants) — *✅ confirmed in user + factory code*
+- [ ] G28 not used for machine zero (use G53 instead) — *✅ confirmed: 0 G28 in macros*
+- [ ] Persistent vars primed from #880+ (use local var first) — *✅ confirmed in O_Save_*.nc*
+- [ ] All comparisons use C-style (==, !=, <, >, <=, >=) — *✅ confirmed: 0 EQ/NE/LT/GT in macros*
+- [ ] WCS addresses use stride 5 (not 20) — *✅ confirmed in macro_cam13.nc*
+- [ ] ~~IF statements: no brackets on simple conditions~~ — ⚠ **disputed: every working macro brackets every IF; use brackets by default**
+- [ ] GOTO statements: no space before label (GOTO1 not GOTO 1) — *✅ confirmed*
+- [ ] ~~Labels: single or double digit preferred (N1-N99)~~ — ⚠ **disputed: macros routinely use 3-digit labels (GOTO107, GOTO401, GOTO711)**
+- [ ] Success path uses GOTO to skip error handlers — *✅ confirmed pattern*
+- [ ] #2070 inputs to #50-#499 only, then copy to persistent — *✅ confirmed*
 
 ---
 
-## Firmware Reference
+## Document Status
 
-**Your actual controller firmware backup** (12-31-2025) is available in:
-- `firmware-backup-2025-12-31/SystemBak_19700101000156/nand1-1/`
+**Type**: Quick reference - critical quirks only  
+**Authority**: [CONFIRMED] V1.22 Production-tested  
+**Last Updated**: January 2026
 
-**Key files:**
-- `slib-g.nc` - System library with G-code subroutines
-  - Line 157: **O501** - Single-axis homing routine (called by fndZ.nc, fndzero.nc)
-  - Line 306: **O502** - Fixed/floating probe routine (three modes via Pr1502)
-  - Line 523: **O503** - Dual Y-axis homing routine
-- `slib-m.nc` - M-code system library (M30 end program, outputs, etc.)
-- `fndZ.nc`, `fndzero.nc` - Your homing macros (call O501)
-- `probe.nc` - Your probe macro (calls O502)
-- `key-*.nc` - K-button macros (programmable buttons)
-
-**Use these to:**
-- See exactly how built-in routines work
-- Understand controller-specific behavior
-- Copy/modify proven working code
-- Debug unexpected macro behavior
-
----
+**For complete details with all examples and edge cases**, see full 571-line version or `software-technical-spec.md`.

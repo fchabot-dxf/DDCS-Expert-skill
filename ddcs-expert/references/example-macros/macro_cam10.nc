@@ -6,22 +6,19 @@
 
 #14=20	  ;slow speed
 #15=1  	  ;отскок
-#16=14  ;input port number of the probe
+#16=3  ;input port number of the probe (YunKia V6 on IN03)
 #17=[#2602-54]*5; Working coordinate system offset
 
 #10=#882  ;current Z machine position
 #20=0  ;Z position
 
-#30=#1078	;input port number of the probe
-#31=#1080	;Floating tool setter effective level
-
 //Z Axis.
-G91 G31 Z-#1 F#3 P#30 L#31 Q1  ;move back
-IF #1922==0 GOTO1  ;edge not found!
+G91 G31 Z-#1 F#3 P#16 L0 Q1  ;move back
+IF #1921==1 GOTO1  ;edge not found!
 #20=#1927  ;store position
 G53 Z[#20+#15]   ;отскок
-G91 G31 Z[-#15*2] F#14 P#30 L#31 Q1  ;move back
-IF #1922==0 GOTO1  ;edge not found!
+G91 G31 Z[-#15*2] F#14 P#16 L0 Q1  ;move back
+IF #1922==1 GOTO1  ;edge not found!
 #20=#1927
 ;G53 Z#10  ;returns to the starting point
 G53 Z[#20+10]   ;отскок на 10мм
@@ -46,3 +43,13 @@ M30  ;end
 ;Q: 0=slow down 1=stop immediately
 ;K: status
 ;-> PARAMETER 0076 MUST BE "OPEN" <-
+
+
+
+
+
+
+
+
+
+

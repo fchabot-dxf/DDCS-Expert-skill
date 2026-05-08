@@ -59,7 +59,7 @@ IF #78==0 GOTO118
 N118
 
 #190=#51-ABS[#90] ;;Transmit depth (height), remove minus.
-IF #80EQ0 GOTO298
+IF #80==0 GOTO298
 #190=#51+#61-#90 ;;Transmit depth (height) for through-cutting, do NOT remove minus
 N298
 
@@ -189,7 +189,7 @@ M3S#67
 
 ;;Calculate the chamfer depth in Y
 #191=#100+[[#53-#52]/2*#62/100] ;;[#53-#52]/2 - groove depth
-IF #50EQ0 GOTO201
+IF #50==0 GOTO201
 #191=#100-[[#53-#52]/2*#62/100] ;;[#53-#52]/2 - groove depth
 N201
 

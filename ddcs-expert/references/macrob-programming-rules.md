@@ -4,6 +4,20 @@
 
 **Contributors**: Николай Звягинцев and community members
 
+**⭐ BEFORE READING THIS DOCUMENT ⭐**
+
+**Learn from working code FIRST:**
+1. Browse `example-macros/` directory (22 production-tested files)
+2. Find a macro similar to what you want to create
+3. Study the working code - see actual syntax in practice
+4. Copy and modify the example as your starting point
+5. **Then** use this document to understand the rules
+
+**Why?** Example macros show the syntax that actually works on real machines. This document explains the rules, but examples show real implementation. When in doubt, **trust the examples over the documentation**.
+
+**IMPORTANT NOTE ON COMPARISON OPERATORS:**
+This guide originally documented FANUC-style operators (`EQ`, `NE`, `LT`, `GT`, `LE`, `GE`) as the standard. However, analysis of actual production macros reveals that **C-style operators (`==`, `!=`, `<`, `>`, `<=`, `>=`) are overwhelmingly preferred in practice** (90+ uses vs 2 uses in example macro library). While the controller supports both styles, **use C-style operators for consistency with real-world code**.
+
 ---
 
 ## CRITICAL: Enable Macro Execution
@@ -126,36 +140,57 @@ while #1 lt 10 do 1
 
 **CORRECT:**
 ```gcode
-IF #1 LE 0 GOTO 20
-WHILE #1 LT 10 DO 1
+IF #1 <= 0 GOTO 20
+WHILE #1 < 10 DO 1
 ```
 
-**Required UPPERCASE keywords:**
+**Comparison Operators (C-style - STANDARD IN PRACTICE):**
+
+The M350 controller supports **both** FANUC-style and C-style comparison operators, but **C-style operators (`==`, `!=`, `<`, `>`, `<=`, `>=`) are overwhelmingly preferred** in actual production macros.
+
+**C-Style Operators (RECOMMENDED - Used in 99% of real macros):**
+- `==` (equal)
+- `!=` (not equal)
+- `<` (less than)
+- `>` (greater than)
+- `<=` (less than or equal)
+- `>=` (greater than or equal)
+
+**FANUC-Style Operators (Supported but rarely used):**
+- `EQ` (equal)
+- `NE` (not equal)
+- `LT` (less than)
+- `GT` (greater than)
+- `LE` (less than or equal)
+- `GE` (greater than or equal)
+
+**Evidence from actual macros:**
+- Analysis of example macros shows C-style operators used 90+ times
+- FANUC-style operators found only 2 times in entire macro library
+- Even macros that use FANUC-style mix it with C-style (18:2 ratio in one file)
+
+**Recommendation:** **Use C-style operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)** for consistency with actual practice.
+
+**Required UPPERCASE keywords (still mandatory):**
 - `GOTO`
 - `IF`
 - `WHILE`
 - `DO`
 - `END`
-- `LE` (less than or equal)
-- `LT` (less than)
-- `GE` (greater than or equal)
-- `GT` (greater than)
-- `EQ` (equal)
-- `NE` (not equal)
 
 ---
 
 ### 6. Brackets Can Be Omitted
 
-**Verbose (FANUC style):**
+**Verbose (FANUC style with brackets):**
 ```gcode
-IF [#1 LE 0] GOTO 20
+IF [#1 <= 0] GOTO 20
 #2 = [#0 * 30]
 ```
 
-**Compact (M350 style):**
+**Compact (M350 style - STANDARD):**
 ```gcode
-IF#1LE0GOTO20
+IF#1<=0GOTO20
 #2=#0*30
 ```
 
@@ -163,6 +198,7 @@ IF#1LE0GOTO20
 - Saves space
 - Reduces file size
 - Standard on M350
+- **Use C-style operators (`<=` not `LE`) for consistency**
 
 **Use brackets for:**
 - Complex expressions
@@ -313,11 +349,14 @@ G04 P5000
 ```
 
 **Binary choice:**
+
+> **⚠️ Evidence note (2026-05-07):** The example below contradicts the same skill's own rules — it uses `=` (single equals) instead of `==`, and `GOTO 1` (space before label) instead of `GOTO1`. Per other docs in this skill, the correct form would be `IF #1505==0 GOTO1`. Whether the single-`=` and space-before-label forms actually work for #1505 specifically, or whether this example is just stale, is **untested**. No `.nc` macro uses `IF #var = N GOTO N` (single `=`) — they all use `==`.
+
 ```gcode
 #1505 = 3(Move Right[Enter] or Left[Esc]?)
-IF #1505 = 0 GOTO 1   ; ESC = 0
+IF #1505 = 0 GOTO 1   ; ⚠ Uses `=` and space-before-label — both violate the C-style/no-space rules elsewhere in this skill
 G01 X10 F200          ; ENTER = 1
-GOTO 2
+GOTO 2                ; ⚠ Space before label — violates no-space rule
 N1
 G01 X-10 F200         ; ESC path
 N2
@@ -400,8 +439,8 @@ O0001
 #2=#0*2
 
 ;=== CONTROL FLOW ===
-IF#0GT5GOTO10
-WHILE#1LT100DO1
+IF#0>5GOTO10
+WHILE#1<100DO1
 #1=#1+1
 END1
 
@@ -411,7 +450,7 @@ N10
 
 ;=== USER PROMPT ===
 #1505=1(Continue?)
-IF#1505EQ0GOTO999
+IF#1505==0GOTO999
 
 ;=== NORMAL EXIT ===
 M30

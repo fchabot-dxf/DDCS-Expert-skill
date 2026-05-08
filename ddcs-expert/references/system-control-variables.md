@@ -267,7 +267,7 @@ M6 T1
 **Check axis configuration:**
 ```gcode
 (Verify machine has 4th axis)
-IF #1995 GE 4 GOTO 10
+IF #1995 >= 4 GOTO 10
 #1505 = 1(ERROR: 4th axis required!)
 M30
 

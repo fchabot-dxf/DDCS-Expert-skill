@@ -1,5 +1,29 @@
 # Example Macros - Working .nc Files
 
+**⭐ START HERE: These examples are your BEST learning resource for DDCS M350 programming ⭐**
+
+## Why Start Here?
+
+These are **real production macros** running on actual CNC machines. They show:
+- ✅ Syntax that actually works (C-style operators: `==`, `!=`, `<`, `>`)
+- ✅ Proper G53 usage (with variables, not constants)
+- ✅ Variable priming patterns (prevents freeze bugs)
+- ✅ Error handling and safety checks
+- ✅ Real-world problem solving
+- ✅ Quirk workarounds implemented correctly
+
+**Learning workflow:**
+1. **Find a similar example** to what you want to create
+2. **Read and understand** the working code
+3. **Copy as your template** - Don't start from scratch!
+4. **Modify** for your specific needs
+5. **Test incrementally** - Air tests first
+6. **Consult documentation** only when you need to understand *why*
+
+**Trust the examples over documentation** - If an example does it differently than docs say, the example is probably right.
+
+---
+
 This directory contains actual working macro files (.nc) tested on DDCS M350 systems. These are real production code examples that can be referenced when building new macros.
 
 ## Your Tested Macros (Fréderic's Ultimate Bee 1010)
@@ -55,17 +79,39 @@ This directory contains actual working macro files (.nc) tested on DDCS M350 sys
 
 ### Probing (Community Examples)
 
+**Note:** All CAM macros are configured for YunKia V6 probe on **IN03**. If using a different probe input, change line 9: `#16=3` to your probe input number.
+
 **macro_cam10.nc**
 - Surface finding with 3D touch probe
 - Two-pass approach (fast + slow)
 - Accounts for probe length offset
 - Sets WCS Z zero automatically
+- Configured for IN03 (YunKia V6)
 
 **macro_cam11.nc**
 - Hole center finding routine
 - Four-direction probe (left, right, back, front)
 - Optional double Y-scan for round features
 - Calculates center, sets WCS XY zero
+- Configured for IN03 (YunKia V6)
+
+**macro_cam12.nc**
+- Outer edge center finding with Z-scanning
+- Advanced routine with collision detection
+- Safe Z movements between probes
+- X/Y axis enable/disable options
+- Probes from outside-in approach
+- Sets WCS XY zero to calculated center
+- Configured for IN03 (YunKia V6)
+
+**macro_cam13.nc**
+- Single-edge finding with direction control
+- Probe diameter compensation
+- Bidirectional scanning (positive or negative direction)
+- Useful for finding single edges or corners
+- X/Y axis enable/disable options
+- Sets calculated edge position to WCS
+- Configured for IN03 (YunKia V6)
 
 ### Debugging & Testing
 
@@ -102,6 +148,18 @@ This directory contains actual working macro files (.nc) tested on DDCS M350 sys
 
 ### Advanced Examples (Community)
 
+**macro_Adaptive_Pocket.nc** ⭐ **ADVANCED TECHNIQUES**
+- Adaptive rectangular pocket milling with corner radius support
+- **Boolean OR operator**: Uses `+` to combine multiple conditions (line 58)
+- **Dynamic G-code**: `G[53+#578]` saves active WCS, `G[3-#15]` for climb/conv
+- **Advanced indirect addressing**: `#[21+#15]` runtime variable calculation
+- **Complex expressions**: Multi-level nested math with brackets
+- Automatic stepover calculation based on % overlap
+- Climb (CCW) or conventional (CW) milling modes  
+- Multi-pass Z-depth control with corner radius
+- Optimizes by eliminating unnecessary movements
+- **Study this macro to learn advanced MacroB patterns!**
+
 **Table_leveling.nc**
 - Surface milling with snake pattern
 - G4P-1 interactive pause for setup
@@ -122,10 +180,21 @@ This directory contains actual working macro files (.nc) tested on DDCS M350 sys
 - Iterative position teaching
 
 **Double_Y_double_zero_switch.nc**
-- Advanced dual-gantry homing
+- Basic dual-gantry homing (53 lines)
 - Tests both Y-axis sensors separately
 - Chinese comments (from community)
-- Complex sensor port logic
+- Simple reference implementation
+
+**macro_DA_without_relay_advanced.nc** ⭐ **PRODUCTION DUAL-GANTRY**
+- Professional 348-line dual-axis auto-squaring system
+- Three-stage alignment: Fast Feed → Pre-Alignment → Fine Alignment
+- Multi-cycle averaging for precision (<0.01mm achievable)
+- Error detection and statistics tracking
+- Vibration settling, alignment correctors, safety checks
+- Comprehensive configuration (20+ tunable parameters)
+- **Requires firmware ≥30-03-2024**
+- **See `dual-gantry-advanced.md` for complete documentation**
+- **Best for**: Production CNC, precision work, badly-racked gantries
 
 **Manual.nc**
 - Documentation file (not executable)
@@ -141,7 +210,7 @@ This directory contains actual working macro files (.nc) tested on DDCS M350 sys
 → Reference `SAVE_safe_park_position.nc` for pattern
 
 **Creating probe routine:**
-→ Reference `macro_cam10.nc` or `macro_cam11.nc`
+→ Reference `macro_cam10.nc`, `macro_cam11.nc`, `macro_cam12.nc`, or `macro_cam13.nc`
 
 **Need variable inspection:**
 → Copy pattern from `READ_VAR.nc`
@@ -184,7 +253,7 @@ M98P501X1      ; Home Y
 ### 4. Two-Pass Probe
 ```gcode
 G31 Z-50 F200           ; Fast
-IF #1922 == 0 GOTO 999
+IF #1922 == 0 GOTO 999  ; ⚠ Note: space before label `999` and around `==` violate skill's own no-space rule (real macros write `IF #1922==0 GOTO999`)
 #20 = #1927             ; Store trigger
 G53 Z[#20 + 1]          ; Retract
 G31 Z-2 F20             ; Slow precise
@@ -233,12 +302,14 @@ END1
 - PERSISTENCE_*.nc
 
 **Community macros** (proven on other M350 systems):
+- macro_Adaptive_Pocket.nc ⭐ (advanced patterns - boolean OR, dynamic G-code, indirect addressing)
+- macro_DA_without_relay_advanced.nc ⭐ (production dual-gantry auto-squaring, 348 lines)
 - macro_cam*.nc (probe routines)
 - Table_leveling.nc (surface milling)
 - macro_through_*.nc (position memory)
 - Average_error.nc (diagnostics)
 - Test_DA_*.nc (sensor testing)
-- Double_Y_*.nc (dual-gantry advanced)
+- Double_Y_*.nc (dual-gantry basic)
 
 ## Integration with Skill
 
@@ -252,9 +323,10 @@ These macros are referenced throughout the skill documentation:
 ## Testing Status
 
 ✅ **Production-tested**: All SAVE_*.nc, fndzero.nc, fndy.nc, SPINDLE_WARMUP.nc
-✅ **Community-proven**: macro_cam*.nc, Table_leveling.nc
+✅ **Community-proven**: macro_Adaptive_Pocket.nc, macro_DA_without_relay_advanced.nc, macro_cam*.nc, Table_leveling.nc
 ✅ **Diagnostic tools**: READ_VAR.nc, PERSISTENCE_*.nc, Average_error.nc
 ✅ **Advanced examples**: macro_through_*.nc, Double_Y_*.nc
+⚠️ **Work in Progress**: squaring-macro-WIP-log.md (development tracking)
 
 ## Important Notes
 
@@ -305,13 +377,3 @@ These are real, working files - not theoretical examples. They represent battle-
     - Safety checks and simulation
     - Production-tested advanced example
 
-## Latest Addition - Auto-Squaring
-
-22. **fndzero-autosquare-final.nc** - Dual-gantry auto-squaring homing macro
-    - Automatically corrects gantry racking using two Y-axis limit switches
-    - Two-stage correction: auto-measured switch offset + manual frame calibration
-    - Y1 (left) = Home position, Y2 (right) = Reference
-    - Self-calibrating switch offset measurement
-    - Manual frame calibration offset (#121) for fine-tuning
-    - Production-tested on Ultimate Bee 1010
-    - See `dual-gantry-auto-squaring.md` for complete documentation

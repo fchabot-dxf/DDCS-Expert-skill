@@ -223,12 +223,12 @@ M30
 **CYCLE_WCS.nc**:
 ```gcode
 (Cycle through work coordinate systems)
-IF #578 EQ 1 GOTO wcs2
-IF #578 EQ 2 GOTO wcs3
-IF #578 EQ 3 GOTO wcs4
-IF #578 EQ 4 GOTO wcs5
-IF #578 EQ 5 GOTO wcs6
-IF #578 EQ 6 GOTO wcs1
+IF #578 == 1 GOTO wcs2
+IF #578 == 2 GOTO wcs3
+IF #578 == 3 GOTO wcs4
+IF #578 == 4 GOTO wcs5
+IF #578 == 5 GOTO wcs6
+IF #578 == 6 GOTO wcs1
 
 N wcs1
 G54
@@ -290,7 +290,7 @@ M30
 **TOGGLE_COOLANT.nc**:
 ```gcode
 (Toggle spindle coolant on/off)
-IF #624 EQ 0 GOTO turn_on
+IF #624 == 0 GOTO turn_on
 M9                  ; Coolant off
 #1505 = 1(Coolant OFF)
 GOTO end
@@ -463,7 +463,7 @@ M30
 **Smart Park Button:**
 ```gcode
 (Park based on current state)
-IF #624 EQ 0 GOTO spindle_off
+IF #624 == 0 GOTO spindle_off
 M5                  ; Stop spindle
 #1505 = 1(Spindle stopped)
 G04 P2000
@@ -478,10 +478,10 @@ M30
 **Smart Home Button:**
 ```gcode
 (Home only unhomed axes)
-IF #1516 EQ 0 GOTO home_x
-IF #1518 EQ 0 GOTO home_y  
-IF #1517 EQ 0 GOTO home_z
-IF #1519 EQ 0 GOTO home_b
+IF #1516 == 0 GOTO home_x
+IF #1518 == 0 GOTO home_y  
+IF #1517 == 0 GOTO home_z
+IF #1519 == 0 GOTO home_b
 #1505 = 1(All axes homed)
 GOTO end
 

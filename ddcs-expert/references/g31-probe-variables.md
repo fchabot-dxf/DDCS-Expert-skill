@@ -6,6 +6,8 @@
 
 **Note**: These are SYSTEM variables (marked "S") - read-only or automatically set by controller.
 
+> **⚠️ Style note (2026-05-07):** Code examples below use `IF #1922 == 0 GOTO 999` — spaces around `==` and before the label. The skill's `CORE_TRUTH.md`/`conditional-syntax-card.md` say the no-space form `IF #1922==0 GOTO999` is required. Production `.nc` macros all use the tight form. When copying examples, prefer `IF #var==N GOTOlabel` with no spaces.
+
 ---
 
 ## CRITICAL: Probe Modes - What Gets Changed
@@ -189,7 +191,7 @@ M30
 ; Probe down to find surface
 G31 Z-50 F200 P12 L0 Q0
 
-IF #1922 NE 2 GOTO 999   ; Check success
+IF #1922 != 2 GOTO 999   ; Check success
 
 ; Get trigger position
 #100 = #1927             ; Z machine coordinate when triggered
@@ -241,7 +243,7 @@ G31 Z-[#34] F[#32] P[#30] L[#31] Q0
 IF #1922 == 0 GOTO 997   ; No probe
 IF #1922 == 3 GOTO 996   ; Negative limit
 IF #1922 == 4 GOTO 995   ; Positive limit
-IF #1922 NE 2 GOTO 997   ; Unknown error
+IF #1922 != 2 GOTO 997   ; Unknown error
 
 #35 = #1927              ; Store position
 
@@ -252,7 +254,7 @@ G0 Z2
 G31 Z-5 F[#33] P[#30] L[#31] Q0
 
 ; Check result
-IF #1922 NE 2 GOTO 997
+IF #1922 != 2 GOTO 997
 
 #35 = #1927              ; Final trigger position
 #36 = #629               ; Get puck thickness
@@ -295,7 +297,7 @@ M30
 **1. Always check probe result:**
 ```gcode
 G31 ...
-IF #1922 NE 2 GOTO error
+IF #1922 != 2 GOTO error
 ```
 
 **2. Enable limit protection:**
@@ -331,7 +333,7 @@ G31 Z-5 F20 ...
 
 ```gcode
 G31 Z-50 F200 P12 L0
-IF #1922 EQ 2 GOTO 10
+IF #1922 == 2 GOTO 10
 #1505 = 1(Probe failed!)
 M30
 
@@ -346,7 +348,7 @@ M30
 ```gcode
 ; Probe left
 G31 X-20 F100 P12 L0
-IF #1922 NE 2 GOTO 999
+IF #1922 != 2 GOTO 999
 #10 = #1925  ; Left position
 
 ; Retract
@@ -354,7 +356,7 @@ G0 X5
 
 ; Probe right
 G31 X20 F100 P12 L0
-IF #1922 NE 2 GOTO 999
+IF #1922 != 2 GOTO 999
 #11 = #1925  ; Right position
 
 ; Calculate center
@@ -372,7 +374,7 @@ M30
 ```gcode
 ; Approach from left
 G31 X50 F100 P12 L0
-IF #1922 NE 2 GOTO 999
+IF #1922 != 2 GOTO 999
 
 #100 = #1925  ; Edge position
 #101 = 6.35   ; Probe radius
