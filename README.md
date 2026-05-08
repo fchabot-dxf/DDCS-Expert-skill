@@ -65,7 +65,10 @@ This skill provides complete documentation, proven macros, and reference materia
 - **Virtual_button_function_codes_COMPLETE.xlsx** - All 201 virtual button KeyValue codes (extended functions)
 
 **Code & Configuration:**
-- **Fusion360_DDCS_post-processor.cps** - Working Fusion 360 post-processor
+- **post-processors/** - Two Fusion 360 post-processors for the DDCS M350:
+  - `Fusion360_DDCS_post-processor.cps` — full DDCS integration (dynamic WCS-aware parking math, victory dance, manual tool change)
+  - `fanuc_DDCS_m350.cps` — minimalist / operator-driven adaptation (G53-with-variables retracts, K6/K7-taught parking, manual tool change as comments by default)
+  - See `fusion-post-processor.md` for a side-by-side breakdown and when to pick which
 - **firmware-backup-2025-12-31/** - Complete controller firmware backup with slib-g.nc, slib-m.nc, and all system macros
 
 **Official Documentation:**
@@ -250,10 +253,13 @@ ddcs-expert/
     │       ├── slib-m.nc                 # M-code library
     │       └── [120+ system files]
     │
+    ├── post-processors/
+    │   ├── Fusion360_DDCS_post-processor.cps   # Full DDCS integration
+    │   └── fanuc_DDCS_m350.cps                  # Minimalist FANUC-flavored variant
+    │
     ├── DDCS_Variables_mapping_2025-01-04.xlsx
     ├── DDCS_G-M-code_reference.xlsx
     ├── Virtual_button_function_codes_COMPLETE.xlsx
-    ├── Fusion360_DDCS_post-processor.cps
     └── [Official PDFs and parameter files]
 ```
 

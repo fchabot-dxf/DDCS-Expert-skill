@@ -222,7 +222,7 @@ The skill contains machine-specific:
 
 ### 7. **Fusion360_DDCS_post-processor.cps**
 
-**Location**: `references/Fusion360_DDCS_post-processor.cps`
+**Location**: `references/post-processors/Fusion360_DDCS_post-processor.cps`
 
 **What to customize:**
 

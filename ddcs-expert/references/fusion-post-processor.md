@@ -2,13 +2,57 @@
 
 This document covers integration patterns for Fusion 360 post-processors running on DDCS M350/Expert controllers, focusing on the non-standard variable addressing and WCS offset calculations required.
 
-**Current Post-Processor File**: `Fusion360_DDCS_post-processor.cps` (included in references)
+Both post-processors live in [`post-processors/`](post-processors/) under references.
+
+### Variant 1: `Fusion360_DDCS_post-processor.cps` — full DDCS integration
+
 - Based on: Autodesk FANUC generic post (V44207)
 - Customized for: DDCS M350 Ultimate Bee 1010
-- Features: Victory dance, dynamic WCS parking, manual tool changing
+- **Approach**: integrates deeply with DDCS — runtime WCS-aware math, parking driven by persistent vars, includes ergonomic flourishes
+- Features:
+  - **Victory dance** at end-of-job (`victoryDance` property near L244, executed L799/L873)
+  - **Dynamic WCS parking math**: computes machine targets from the active WCS offset table at runtime using `#578` (active WCS index) and the `#800/#801/#802 + idx*5` stride. Examples: `Z[-10 - #[802 + #578 * 5]]` (L882), `X[#1153 - #[800 + #578 * 5]]` (L902)
+  - **Manual tool changing**: `tool.manualToolChange → COMMAND_STOP + comment` (L1878–1880)
 - Last updated: January 2026
 
-**Alternate Variant**: `fanuc_DDCS_m350.cps` — a FANUC-flavored post adapted for DDCS M350. Different starting point / approach from `Fusion360_DDCS_post-processor.cps`. Useful for cross-referencing how different adaptations handle the same DDCS quirks.
+### Variant 2: `fanuc_DDCS_m350.cps` — minimalist / operator-driven adaptation
+
+- **Approach**: a *conservative* DDCS adaptation. Does the minimum to make Autodesk's stock FANUC output safe on DDCS, and pushes everything else onto the operator and the DDCS UI. Useful when you want a thin, predictable post and prefer to teach parking positions on the controller rather than compute them in G-code.
+- **Header**: keeps stock FANUC identity strings (`description = "FANUC"`, `vendor = "Fanuc"`). DDCS edits are flagged inline with `// --- CUSTOM EDIT START / END` markers around L199, L260, L447, L798.
+- **Custom properties** (L199–259):
+  - `safePositionMethod` — G53/G28 picker, default G53
+  - `safeZHeight` — default −1
+  - `homePositionEnd` — Safe Park / Tool Change / Home / Safe Z
+  - `useM6` — default OFF (manual change as comments only)
+  - `useG43` — default OFF
+  - `useCoolant` — M8 toggle
+- **G53 retract pattern** (DDCS-correct — variables only, no bare constants):
+  - L800–801: `#150 = <safeZ>; G53 Z#150`
+  - L818: `G53 X[#601] Y[#602]` — Safe Park (K6-taught)
+  - L822: `G53 X[#603] Y[#604]` — Tool Change (K7-taught)
+  - L828: `G53 X#151 Y#152` — Home as variables
+  - L3019: same pattern in `writeRetract`
+- **WCS handling**: plain `G54`–`G59` activation via stock `writeWCS()` (L1751–1766). **Does not write `#805+` offsets** — relies on operator setting offsets in the DDCS UI.
+- **No `#1153+`, `#880`, `#1505`, `#2070`, `#1510` references** — only uses scratch `#150–#152` and parking presets `#601–#604`.
+- **No G10 anywhere** ✅
+- **O-word output suppressed** for DDCS compatibility (L447)
+- **3D arc guard**: L2879/L2902 explicitly error with "DDCS Expert M350" message if G02.4/G03.4 would be emitted
+- **Tool change**: when `useM6=false` (default), tool number is written as a comment `(T1)` only — no M6, no preload. `tool.manualToolChange` adds `COMMAND_STOP` + comment.
+
+### When to pick which
+
+| Want… | Use |
+|---|---|
+| Runtime WCS-aware parking math, victory dance, full integration | `Fusion360_DDCS_post-processor.cps` |
+| Thin, predictable output; teach parking via K6/K7 on the controller | `fanuc_DDCS_m350.cps` |
+| Cross-reference how two adaptations solve the same DDCS quirks | Diff the two |
+
+### Known concerns in `fanuc_DDCS_m350.cps`
+
+- **L462** (FANUC stock, untouched): `writeBlock("IF[PRM[5006,6]NE1]THEN#3000=91", ...)` — uses FANUC `NE` operator and `#3000` alarm. Reachable only when `headPositioningMethod==1` with TWP. Unlikely to fire on M350, but **would not parse on DDCS** if it ever did. Consider gating or removing.
+- **L3007 / L3012** (G28/G30 retract paths) emit bare `G28 G91 X.. Y.. Z..` / `G30 ...`. If a user picks `safePositionMethod = "G28"` in the dialog, the output would not work on DDCS. Default is G53 so usually safe, but worth flagging in operator training.
+- No priming pattern for `#1153+`, but the file doesn't write to those addresses at all, so the priming bug isn't reachable.
+- No `#2070`/`#1505`/`#1510` use — no UI prompts/dialogs at all (vs. richer interactivity those addresses enable).
 
 ## Core Challenge
 
@@ -490,7 +534,7 @@ if (customPos == "posA") {
 - Manual tool change workflow
 - No G53 hardcoded constants (avoids M350 bug)
 
-**Current Post-Processor**: The complete working post-processor is included as `Fusion360_DDCS_post-processor.cps` in the same references directory. You can:
+**Current Post-Processor**: The complete working post-processor is included as `Fusion360_DDCS_post-processor.cps` in the [`post-processors/`](post-processors/) subdirectory. You can:
 - Use it directly in Fusion 360
 - Copy it as a starting point for customization
 - Reference it for specific implementation details
