@@ -66,9 +66,9 @@ This skill provides complete documentation, proven macros, and reference materia
 
 **Code & Configuration:**
 - **post-processors/** - Two Fusion 360 post-processors for the DDCS M350:
-  - `Fusion360_DDCS_post-processor.cps` — full DDCS integration (dynamic WCS-aware parking math, victory dance, manual tool change)
-  - `fanuc_DDCS_m350.cps` — minimalist / operator-driven adaptation (G53-with-variables retracts, K6/K7-taught parking, manual tool change as comments by default)
-  - See `fusion-post-processor.md` for a side-by-side breakdown and when to pick which
+  - `fanuc_DDCS_m350.cps` — **CURRENT / preferred**. Minimalist, operator-driven: G53 retracts to K6/K7-taught presets, no runtime persistent-var dependencies, no priming-bug exposure
+  - `Fusion360_DDCS_post-processor.cps` — **LEGACY / reference**. Maximalist with dynamic WCS-aware parking math, victory dance, manual tool change
+  - See `fusion-post-processor.md` for a side-by-side breakdown
 - **firmware-backup-2025-12-31/** - Complete controller firmware backup with slib-g.nc, slib-m.nc, and all system macros
 
 **Official Documentation:**

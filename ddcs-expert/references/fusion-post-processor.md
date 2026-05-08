@@ -4,7 +4,9 @@ This document covers integration patterns for Fusion 360 post-processors running
 
 Both post-processors live in [`post-processors/`](post-processors/) under references.
 
-### Variant 1: `Fusion360_DDCS_post-processor.cps` — full DDCS integration
+> **Status (2026-05-07):** `fanuc_DDCS_m350.cps` is the **current / preferred** post on engineering grounds — operator-driven K6/K7-taught G53 parking removes runtime dependencies (no `#578`/`#1153` math, no priming-bug exposure). `Fusion360_DDCS_post-processor.cps` is kept as **legacy / maximalist reference** — its dynamic WCS-aware parking math is clever but more brittle. Diff between them is useful for understanding which DDCS quirks the operator-driven approach sidesteps.
+
+### Variant 1 (LEGACY / maximalist reference): `Fusion360_DDCS_post-processor.cps` — full DDCS integration
 
 - Based on: Autodesk FANUC generic post (V44207)
 - Customized for: DDCS M350 Ultimate Bee 1010
@@ -15,7 +17,7 @@ Both post-processors live in [`post-processors/`](post-processors/) under refere
   - **Manual tool changing**: `tool.manualToolChange → COMMAND_STOP + comment` (L1878–1880)
 - Last updated: January 2026
 
-### Variant 2: `fanuc_DDCS_m350.cps` — minimalist / operator-driven adaptation
+### Variant 2 (CURRENT / preferred): `fanuc_DDCS_m350.cps` — minimalist / operator-driven adaptation
 
 - **Approach**: a *conservative* DDCS adaptation. Does the minimum to make Autodesk's stock FANUC output safe on DDCS, and pushes everything else onto the operator and the DDCS UI. Useful when you want a thin, predictable post and prefer to teach parking positions on the controller rather than compute them in G-code.
 - **Header**: keeps stock FANUC identity strings (`description = "FANUC"`, `vendor = "Fanuc"`). DDCS edits are flagged inline with `// --- CUSTOM EDIT START / END` markers around L199, L260, L447, L798.
@@ -41,10 +43,12 @@ Both post-processors live in [`post-processors/`](post-processors/) under refere
 
 ### When to pick which
 
+**Default to `fanuc_DDCS_m350.cps`** for new work — fewer runtime dependencies, no priming-bug exposure, operator-verifiable parking. Only fall back to `Fusion360_DDCS_post-processor.cps` if you specifically need its dynamic WCS-aware parking or victory dance behavior.
+
 | Want… | Use |
 |---|---|
-| Runtime WCS-aware parking math, victory dance, full integration | `Fusion360_DDCS_post-processor.cps` |
-| Thin, predictable output; teach parking via K6/K7 on the controller | `fanuc_DDCS_m350.cps` |
+| Default production output (recommended) | `fanuc_DDCS_m350.cps` (CURRENT) |
+| Runtime WCS-aware parking math, victory dance | `Fusion360_DDCS_post-processor.cps` (LEGACY) |
 | Cross-reference how two adaptations solve the same DDCS quirks | Diff the two |
 
 ### Known concerns in `fanuc_DDCS_m350.cps`
