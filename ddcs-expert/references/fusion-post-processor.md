@@ -8,6 +8,8 @@ This document covers integration patterns for Fusion 360 post-processors running
 - Features: Victory dance, dynamic WCS parking, manual tool changing
 - Last updated: January 2026
 
+**Alternate Variant**: `fanuc_DDCS_m350.cps` — a FANUC-flavored post adapted for DDCS M350. Different starting point / approach from `Fusion360_DDCS_post-processor.cps`. Useful for cross-referencing how different adaptations handle the same DDCS quirks.
+
 ## Core Challenge
 
 **Problem**: DDCS M350 uses non-standard WCS offset addresses with stride of 5, not FANUC standard.
