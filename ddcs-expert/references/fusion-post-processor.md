@@ -58,6 +58,16 @@ Both post-processors live in [`post-processors/`](post-processors/) under refere
 - No priming pattern for `#1153+`, but the file doesn't write to those addresses at all, so the priming bug isn't reachable.
 - No `#2070`/`#1505`/`#1510` use — no UI prompts/dialogs at all (vs. richer interactivity those addresses enable).
 
+### Verified field findings (2026-05-12, step7.nc / okrrrr.nc — single-tool POCKET2/MORPHED SPIRAL job)
+
+Two emission issues found in real Fusion output from `fanuc_DDCS_m350.cps`. **Both patched in the local workspace copy on 2026-05-12** — pending port to the GitHub canonical copy.
+
+1. **Missing `M09` in `onClose()` footer.** When `useCoolant=true`, the post emitted `M08` at job start but never emitted `M09` at end of job. Output footer was `... / M05 / #150 = -1. / G53 Z#150 / G49 / M30 / %`. **Root cause**: `M08` is emitted directly via `writeBlock(mFormat.format(8))` in `COMMAND_START_SPINDLE` (around L690), bypassing `setCoolant()`. The post's internal `currentCoolantMode` was therefore never set to ON, so when `onClose()` calls `onCommand(COMMAND_COOLANT_OFF) → setCoolant(COOLANT_OFF)`, it sees current==OFF, new==OFF, and emits nothing. **Fix applied** (L794–803): replaced the no-op `onCommand(COMMAND_COOLANT_OFF)` with an explicit `writeBlock(mFormat.format(9))` gated on `useCoolant`, mirroring the explicit-M8 pattern.
+
+2. **Orphan `H01` on first Z move when `useG43=false`.** Observed: `Z17.78H01` on the first non-rapid Z descent of operation 1, with no `G43` anywhere in the file. **Root cause**: `getOffsetCode()` correctly returns `""` when `useG43=false` (L3193), but the sibling `hOffset` variable computed at L3068 was unconditional — so `writeBlock(getOffsetCode(), zOutput.format(z), hOffset)` at L3120/L3143 still printed the `H` word even with G43 suppressed. **Fix applied** (L3068): gated `hOffset` on `getProperty("useG43")` so it tracks `getOffsetCode()`'s output.
+
+Neither issue prevented programs from running, but the M09 omission was a real concern (coolant pump latched past M30). Test the patched post on a single-tool job before promoting to production, and confirm the output has `M9` immediately before `M5` and no stray `H01` anywhere.
+
 ## Core Challenge
 
 **Problem**: DDCS M350 uses non-standard WCS offset addresses with stride of 5, not FANUC standard.

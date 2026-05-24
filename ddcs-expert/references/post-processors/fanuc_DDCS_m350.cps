@@ -792,7 +792,16 @@ function onClose() {
   }
 
   writeln("");
-  onCommand(COMMAND_COOLANT_OFF);
+  // --- CUSTOM EDIT START (2026-05-12): explicit M9 ---
+  // COMMAND_COOLANT_OFF → setCoolant(COOLANT_OFF) is a no-op here because
+  // M8 was emitted directly in COMMAND_START_SPINDLE (line ~690), so the
+  // post's internal currentCoolantMode was never set to ON. setCoolant(OFF)
+  // sees no change and emits nothing — coolant relay stays latched past M30.
+  // Force an explicit M9 here, mirroring the explicit M8 pattern.
+  if (getProperty("useCoolant")) {
+    writeBlock(mFormat.format(9));
+  }
+  // --- CUSTOM EDIT END ---
   onCommand(COMMAND_STOP_SPINDLE);
 
   // --- CUSTOM END PARKING LOGIC ---
@@ -3065,7 +3074,11 @@ function writeInitialPositioning(position, isRequired, codes1, codes2) {
     break;
   }
   var feed = (highFeedMapping != HIGH_FEED_NO_MAPPING) ? getFeed(highFeedrate) : "";
-  var hOffset = getSetting("outputToolLengthOffset", true) ? hFormat.format(tool.lengthOffset) : "";
+  // --- CUSTOM EDIT (2026-05-12): suppress orphan H when useG43=false ---
+  // getOffsetCode() already returns "" when useG43=false, but hOffset was
+  // still computed and emitted alongside it (e.g. "Z17.78 H01" on first
+  // Z descent). Gate H output on useG43 so it tracks G43 emission.
+  var hOffset = (getSetting("outputToolLengthOffset", true) && getProperty("useG43")) ? hFormat.format(tool.lengthOffset) : "";
   var additionalCodes = [formatWords(codes1), formatWords(codes2)];
 
   forceModals(gMotionModal);
